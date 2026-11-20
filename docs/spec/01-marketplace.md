@@ -1,0 +1,239 @@
+# Spec 01. 마켓플레이스의 배포
+
+- 상태: 승인 (사용자가 결정, 2026-11-20). AI가 제안했다. 사용자가 묶어서 승인했다. 하나씩 보지는 않았다. "근거"의 절의 "누가"의 열은 제안한 쪽을 그대로 남긴다.
+  - 수정 (2026-11-20): AC-2.11 ~ AC-2.13을 목표 2의 끝에 더했다. 사용자의 답(설치의 방법, `--plugin-dir`)에서 나왔다. 문장은 AI가 썼다. 확인이 필요하다.
+  - 수정 (2026-11-20): "가정" 2번의 출처를 "사용자가 결정"으로 바꿨다. `--plugin-dir`의 문장을 더했다.
+  - 수정 (2026-11-20): 사용자가 질문 11개에 하나씩 답했다 (일지의 스텝 8). 그 답을 반영했다. 문장은 AI가 썼다. 확인이 필요하다. AC-2.14, AC-4.5, AC-6.6을 끝에 더했다. AC-2.13은 좁혔다: "`--plugin-dir`가 있는 줄"에서 "`claude --plugin-dir`가 있는 줄"로. 바꾼 파일이 6개에서 18개가 됐다.
+- 슬라이스: 저장소를 만든다 → 플러그인 2개를 옮긴다 → 검사한다 → GitHub에 올린다 → GitHub에서 설치해서 확인한다.
+- 용어: [도메인 모델](../domain/01-marketplace.md)을 따른다.
+
+이 문서는 **무엇을** 만드는지만 말한다. 폴더의 구조, 옮기는 방법, 버전의 방법, 검증의 방법은 ADR에 있다.
+
+## 이 문서를 읽는 법
+
+요구의 수준은 RFC 2119를 따른다. 이 표는 이 문서에만 있다. 다른 문서는 이 표를 가리킨다.
+
+| 말 | RFC 2119 | 뜻 |
+|---|---|---|
+| **반드시 ~해야 한다** | MUST | 예외가 없는 요구다. |
+| **절대 ~해서는 안 된다** | MUST NOT | 예외가 없는 금지다. |
+| **~하는 것을 권장한다** | SHOULD | 이유가 있으면 따르지 않아도 된다. 예외의 조건을 함께 적는다. |
+| **~할 수 있다** | MAY | 허용이다. |
+
+- 굵은 키워드가 없는 문장은 설명이다. 요구가 아니다.
+- 수용 기준은 "수준"의 열의 값과 문장의 키워드가 같다.
+
+여러 번 쓰는 말의 뜻은 아래와 같다.
+
+| 말 | 뜻 |
+|---|---|
+| 저장소 | GitHub의 `tobyilee/tstack`과 그 작업 사본. |
+| 통과한다 | 명령이 끝의 코드 0으로 끝난다. |
+| 실패한다 | 명령이 0이 아닌 끝의 코드로 끝난다. |
+| 설치 명령의 줄 | 글자 `plugin install`이나 `marketplace add`가 있는 줄. |
+| `--plugin-dir`의 명령의 줄 | 글자 `claude --plugin-dir`가 있는 줄. 플래그의 이름만 말하는 설명의 문장은 들지 않는다. |
+| 로컬의 변경 | 사용자가 저장소의 작업 사본에서 고쳤고 아직 릴리스하지 않은 플러그인의 파일. |
+| 고정 URL | `https://github.com/tobyilee/trealworld/`로 시작하고 출처 커밋의 전체 해시(16진수 40자)를 가진 URL. 가지의 이름(`main`)을 가진 URL은 고정 URL이 아니다. |
+| 상대 링크 | Markdown의 `[글](경로)`에서, 경로가 `http`로 시작하지 않고 `#`로 시작하지 않는 것. |
+| 규칙의 블록 | `references/project-rules.md`의 첫 코드 블록의 내용. 새 프로젝트의 `CLAUDE.md`에 넣는 글이다. |
+| 스킬의 글의 요구 | 스킬의 `SKILL.md`에 그 문장이 있는지를 본다. 모델의 행동은 보지 않는다 ("받아들인 한계" 1번). |
+
+## 목표 1. 사용자가 마켓플레이스에서 플러그인을 설치한다
+
+| ID | 수준 | 수용 기준 |
+|---|---|---|
+| AC-1.1 | MUST | 저장소는 뿌리의 `.claude-plugin/marketplace.json`에 마켓플레이스 매니페스트를 **반드시** 가져**야 한다**. |
+| AC-1.2 | MUST | 마켓플레이스 매니페스트의 `name`은 **반드시** `tstack`이어**야 한다**. |
+| AC-1.3 | MUST | 마켓플레이스 매니페스트의 플러그인의 목록은 **반드시** `tstack`과 `explain-diff`의 2개여**야 한다**. |
+| AC-1.4 | MUST | `claude plugin validate --strict <저장소의 뿌리>`는 **반드시** 통과**해야 한다**. |
+| AC-1.5 | MUST | `claude plugin validate --strict <플러그인의 폴더>`는 플러그인 2개에서 **반드시** 통과**해야 한다**. |
+| AC-1.6 | MUST | 플러그인 `tstack`은 **반드시** 스킬 2개(`t-mode`, `t-reflect`)와 agent 1개(`t-reviewer`)를 제공**해야 한다**. |
+| AC-1.7 | MUST | 플러그인 `explain-diff`는 **반드시** 스킬 1개(`explain-diff`)를 제공**해야 한다**. |
+| AC-1.8 | MUST | 사용자가 GitHub의 `tobyilee/tstack`을 마켓플레이스로 등록하면, `tstack@tstack`의 설치와 `explain-diff@tstack`의 설치는 **반드시** 성공**해야 한다**. |
+| AC-1.9 | MUST NOT | 플러그인 `tstack`의 매니페스트는 `dependencies`에 `explain-diff`를 **절대** 넣어**서는 안 된다**. |
+| AC-1.10 | MUST | 사용자가 저장소의 작업 사본의 경로를 마켓플레이스로 등록하면, 플러그인 2개의 설치는 **반드시** 성공**해야 한다**. |
+
+## 목표 2. 설치한 사본은 플러그인의 폴더만으로 동작한다
+
+설치는 플러그인의 폴더만 복사한다 (확인: "근거"의 E2). 그래서 플러그인이 필요로 하는 것은 모두 그 폴더의 안에 있어야 한다.
+
+| ID | 수준 | 수용 기준 |
+|---|---|---|
+| AC-2.1 | MUST NOT | 플러그인의 Markdown 파일의 상대 링크는 플러그인의 폴더의 밖을 **절대** 가리켜**서는 안 된다**. |
+| AC-2.2 | MUST | 플러그인의 Markdown 파일의 상대 링크는 **반드시** 있는 파일이나 있는 폴더를 가리켜**야 한다**. |
+| AC-2.3 | MUST | `tstack-check.py self`는 플러그인 `tstack`의 폴더의 안에서 **반드시** 통과**해야 한다**. |
+| AC-2.4 | MUST | 플러그인의 폴더는 **반드시** `README.md`를 가져**야 한다**. |
+| AC-2.5 | MUST | 플러그인의 폴더는 **반드시** `LICENSE`를 가져**야 한다**. |
+| AC-2.6 | MUST | 플러그인 매니페스트의 `license`는 **반드시** `MIT`여**야 한다**. |
+| AC-2.7 | MUST | 플러그인 `tstack`의 폴더는 **반드시** 가이드 `GUIDE.md`를 가져**야 한다**. |
+| AC-2.8 | MUST NOT | 플러그인의 파일의 설치 명령의 줄은 글자 `trealworld`를 **절대** 가져**서는 안 된다**. |
+| AC-2.9 | MUST | 플러그인 `explain-diff`의 eval 사례 3개는 **반드시** 플러그인의 폴더의 `evals/<사례의 이름>/`에 있어**야 한다**. |
+| AC-2.10 | MUST NOT | 가이드는 글자 `이 프로젝트`를 **절대** 가져**서는 안 된다**. |
+| AC-2.11 | MUST | 가이드와 플러그인 `tstack`의 `README.md`는 설치의 방법으로 각각 **반드시** 설치 명령 2개를 적어**야 한다**: `/plugin marketplace add tobyilee/tstack`, `/plugin install tstack@tstack`. |
+| AC-2.12 | MUST | 가이드와 플러그인 `tstack`의 `README.md`는 로컬의 변경을 바로 적용하는 방법으로 각각 **반드시** `claude --plugin-dir`의 명령을 적어**야 한다**. |
+| AC-2.13 | MUST | 플러그인의 파일의 `--plugin-dir`의 명령의 줄은 **반드시** 경로 `plugins/<플러그인의 이름>`을 가져**야 한다**. |
+| AC-2.14 | MUST | 플러그인의 파일에 있는 출처 저장소의 URL은 **반드시** 고정 URL이어**야 한다**. |
+
+AC-2.11 ~ AC-2.13의 이유: 출처의 가이드와 README는 두 방법을 적는다. 설치의 방법은 한 줄의 명령(`/plugin install tstack --marketplace tobyilee/trealworld`)이다. 써 보는 방법은 `claude --plugin-dir ./tstack`이다. 옮긴 뒤에는 둘 다 틀린다. 사용자가 정했다: 설치의 방법은 마켓플레이스를 등록하고 플러그인을 설치하는 것이다. `--plugin-dir`는 로컬의 변경을 바로 적용하는 방법으로 남긴다.
+
+`claude --plugin-dir <폴더>`는 플러그인을 설치하지 않는다. 그 폴더를 그 자리에서 읽는다 (확인: 이 설계를 쓴 세션이 `--plugin-dir`로 tstack을 올렸다). 그래서 작업 사본에서 고친 파일이 다음 세션에 바로 보인다.
+
+AC-2.10의 이유: 출처의 가이드는 trealworld를 "이 프로젝트"라고 부른다 (7줄). 옮긴 뒤에는 그 말이 이 저장소를 뜻하게 된다. 가이드는 `trealworld`라고 이름으로 부른다.
+
+## 목표 3. 옮긴 내용은 출처와 같다
+
+| ID | 수준 | 수용 기준 |
+|---|---|---|
+| AC-3.1 | MUST | 출처의 기록은 **반드시** 출처 파일 78개를 모두 나열**해야 한다**. |
+| AC-3.2 | MUST | 옮긴 파일의 내용은, 그 파일이 "출처와 다른 점"의 바꾼 파일의 표에 없으면, **반드시** 출처 파일의 내용과 바이트가 같아**야 한다**. |
+| AC-3.3 | MUST | 출처의 기록은 바꾼 파일마다 **반드시** 이유를 적어**야 한다**. |
+| AC-3.4 | MUST | 출처의 기록은 **반드시** 출처 저장소의 URL과 출처 커밋의 전체 해시(16진수 40자)를 적어**야 한다**. |
+
+출처 파일 78개의 구성: tstack 플러그인 34개, explain-diff 스킬 43개, 가이드 1개 (확인: `git ls-tree -r 68fc5e2`).
+
+## 목표 4. 알려진 결함 4개를 고친다
+
+| ID | 수준 | 수용 기준 |
+|---|---|---|
+| AC-4.1 | MUST | 스킬 `t-reflect`의 글은 **반드시** "설치한 사본을 고치지 않는다"는 금지의 문장을 가져**야 한다**. |
+| AC-4.2 | MUST | 스킬 `t-reflect`의 글은 수정안을 적용하는 방법으로 **반드시** `claude --plugin-dir`를 적어**야 한다**. |
+| AC-4.3 | MUST NOT | 스킬 `explain-diff`의 글은 글자 `the user's house style`을 **절대** 가져**서는 안 된다**. |
+| AC-4.4 | MUST | `tstack-check.py keywords`는 `references/project-rules.md`의 규칙의 블록에서 **반드시** 통과**해야 한다**. |
+| AC-4.5 | MUST | principle 12개의 "사례"의 줄은 각각 **반드시** 고정 URL을 1개 이상 가져**야 한다**. |
+
+결함의 내용:
+
+| # | 결함 | 출처의 위치 |
+|---|---|---|
+| 1 | `t-reflect`의 7번 단계는 tstack의 파일을 고친다. 설치한 사본을 고치면 다음 업데이트가 그 수정을 지운다. | `tstack/skills/t-reflect/SKILL.md` 32번 줄 |
+| 2 | `explain-diff`의 글이 디자인을 "the user's house style"이라고 부른다. 공개한 뒤의 사용자는 그 "user"가 아니다. | `.claude/skills/explain-diff/SKILL.md` 108번 줄 |
+| 3 | 규칙의 블록의 "쓸 수 있다. (MAY)"가 굵지 않다. `keywords`가 실패한다. | `tstack/skills/t-mode/references/project-rules.md` 20번 줄 |
+| 4 | principle 12개의 "사례"의 줄이 trealworld의 일지의 스텝을 글로만 가리킨다. 공개한 뒤의 사용자는 그 일지를 찾지 못한다. | `tstack/skills/t-mode/principles/`의 12개 파일의 `**사례:**`의 줄 |
+
+## 목표 5. 검사는 버전을 올리지 않은 변경을 잡는다
+
+`plugin.json`이 `version`을 고정하면, 그 글자가 바뀔 때까지 사용자는 설치한 사본을 그대로 쓴다 (읽음 (agent): 브레인스토밍의 D4).
+
+| ID | 수준 | 수용 기준 |
+|---|---|---|
+| AC-5.1 | MUST | 플러그인의 폴더의 파일이 마지막 릴리스의 태그의 뒤에 바뀌었고 `version`이 그 태그의 버전과 같으면, 버전의 검사는 **반드시** 실패**해야 한다**. |
+| AC-5.2 | MUST | 플러그인의 폴더의 파일이 마지막 릴리스의 태그의 뒤에 바뀌지 않았으면, 버전의 검사는 **반드시** 통과**해야 한다**. |
+| AC-5.3 | MUST | 플러그인에 릴리스의 태그가 없으면, 버전의 검사는 **반드시** 통과**해야 한다**. |
+
+## 목표 6. 모르는 사람이 저장소의 뿌리에서 설치하는 방법을 찾는다
+
+| ID | 수준 | 수용 기준 |
+|---|---|---|
+| AC-6.1 | MUST | 저장소의 뿌리는 **반드시** MIT 라이선스의 `LICENSE`를 가져**야 한다**. |
+| AC-6.2 | MUST | `LICENSE`의 저작권의 줄은 **반드시** `Copyright (c) 2026 Toby Lee`여**야 한다**. |
+| AC-6.3 | MUST | 뿌리의 `README.md`는 **반드시** 머리가 `## English`인 절을 가져**야 한다**. |
+| AC-6.4 | MUST | `## English`의 절은 **반드시** 설치 명령 3개를 적어**야 한다**. |
+| AC-6.5 | MUST | 뿌리의 `README.md`의 한국어의 본문은 **반드시** 설치 명령 3개를 적어**야 한다**. |
+| AC-6.6 | MUST | 뿌리의 `README.md`의 한국어의 본문은 로컬의 변경을 바로 적용하는 방법으로 **반드시** 명령 `claude --plugin-dir ./plugins/tstack`을 적어**야 한다**. |
+
+설치 명령 3개는 아래와 같다.
+
+```text
+/plugin marketplace add tobyilee/tstack
+/plugin install tstack@tstack
+/plugin install explain-diff@tstack
+```
+
+## 가정
+
+| # | 가정 | 출처 |
+|---|---|---|
+| 1 | 플러그인의 README의 언어는 그 플러그인의 글의 언어를 따른다: `tstack`은 한국어, `explain-diff`는 영어. | AI가 제안 (브레인스토밍의 N6) |
+| 2 | 설치의 방법은 두 단계의 설치 명령 하나다. 한 줄의 명령(`--marketplace`)은 적지 않는다. 그 명령의 최소 버전(`2.1.275`)은 subagent의 보고에만 있다. 내가 확인하지 않았다. `--plugin-dir`는 설치의 방법이 아니다. 로컬의 변경을 적용하는 방법이다. | 사용자가 결정 (2026-11-20). 처음에는 AI가 제안했다 (브레인스토밍의 N8). |
+| 3 | 저장소는 첫 push에서 공개한다. | AI가 제안 (브레인스토밍의 N7) |
+
+## 받아들인 한계
+
+1. 스킬의 글의 요구(AC-4.1 ~ AC-4.3)는 글에 문장이 있는지만 검사한다. 모델이 그 문장을 따르는지는 검사하지 않는다.
+2. AC-3.1 ~ AC-3.4는 첫 릴리스의 내용에 대한 요구다. 첫 릴리스의 뒤에 플러그인의 파일을 고치는 슬라이스는 이 수용 기준의 처리를 먼저 정한다.
+3. `explain-diff`의 문서의 틀은 밖의 스타일시트 2개를 부른다 (jsdelivr, Google Fonts). 네트워크가 없으면 대체 글꼴이 나온다. 이 슬라이스는 고치지 않는다.
+4. `review.md`는 `explain-diff` 스킬을 이름으로 부른다. 설치한 뒤의 이름은 `explain-diff:explain-diff`다. 모델이 두 이름을 같은 스킬로 찾는지는 확인하지 않았다 (추정: 찾는다).
+5. 검사는 `claude plugin eval`을 돌리지 않는다. eval은 모델을 부르고 로그인을 요구한다. 검사는 eval 사례의 폴더의 모양만 본다.
+6. AC-1.8은 push의 뒤에만 검사한다.
+
+## 범위 밖
+
+- trealworld에서 사본 3개를 지우는 일과 새 마켓플레이스를 등록하는 일. 슬라이스 2다.
+- 가이드를 사용법과 기원의 이야기로 나누는 일.
+- Claude Code가 아닌 도구의 지원.
+- trealworld의 hook(`guard-git-discard.py`).
+- 플러그인의 아이콘. `claude plugin validate`의 `ICON_MISSING`은 경고다 (확인).
+- Anthropic의 plugin directory에 제출하는 일.
+
+## 출처와 다른 점
+
+### 바꾼 파일 18개
+
+경로는 플러그인의 폴더가 기준이다.
+
+| # | 플러그인 | 파일 | 바꾸는 것 | 이유 |
+|---|---|---|---|---|
+| 1 | `tstack` | `.claude-plugin/plugin.json` | `version`, `license` | ADR-0003, AC-2.6 |
+| 2 | `tstack` | `README.md` | 설치 명령, `--plugin-dir`의 경로, 가이드의 링크 | AC-2.1, AC-2.8, AC-2.11 ~ AC-2.13 |
+| 3 | `tstack` | `GUIDE.md` (출처: `tstack-guide.md`) | 1절의 설치 명령과 `--plugin-dir`의 경로, 11절의 파일의 지도, 상대 링크 8개, "이 프로젝트"의 7줄. `like-pstack.md`의 링크는 고정 URL로 쓴다 | AC-2.1, AC-2.2, AC-2.8, AC-2.10 ~ AC-2.14 |
+| 4 | `tstack` | `skills/t-reflect/SKILL.md` | 7번 단계 | AC-4.1, AC-4.2 |
+| 5 | `tstack` | `skills/t-mode/references/project-rules.md` | 규칙의 블록의 굵은 글씨 | AC-4.4 |
+| 6 | `explain-diff` | `skills/explain-diff/SKILL.md` | "the user's house style"의 말 | AC-4.3 |
+| 7 ~ 18 | `tstack` | `skills/t-mode/principles/`의 12개 파일 | "사례"의 줄에 고정 URL | AC-4.5, AC-2.14 |
+
+### 경로만 바꾼 파일
+
+- `tstack/` 아래의 34개 → `plugins/tstack/` 아래. 위의 표의 16개를 뺀 18개는 내용이 같다.
+- `.claude/skills/explain-diff/evals/` 아래의 40개 → `plugins/explain-diff/evals/` 아래. 내용이 같다.
+- `.claude/skills/explain-diff/`의 나머지 3개 → `plugins/explain-diff/skills/explain-diff/` 아래. 위의 표의 1개를 뺀 2개는 내용이 같다.
+
+### 새 파일
+
+- 저장소의 뿌리: `.claude-plugin/marketplace.json`, `README.md`, `LICENSE`, 출처의 기록.
+- `plugins/tstack/`: `LICENSE`.
+- `plugins/explain-diff/`: `.claude-plugin/plugin.json`, `README.md`, `LICENSE`.
+
+## 근거
+
+### 확인한 사실
+
+| # | 사실 | 방법 |
+|---|---|---|
+| E1 | `claude plugin validate`는 로그인이 없는 설정 폴더에서 돈다. | 빈 `CLAUDE_CONFIG_DIR`에서 실행했다. 끝의 코드 0. |
+| E2 | GitHub의 마켓플레이스에서 설치한 사본은 플러그인의 폴더의 파일만 가진다. | 빈 `CLAUDE_CONFIG_DIR`에서 `tobyilee/trealworld`의 `tstack`을 설치했다. 사본의 파일의 목록이 `git ls-files tstack`과 같다 (34개). 플러그인의 밖의 파일은 0개다. |
+| E3 | `CLAUDE_CONFIG_DIR`는 설치를 격리한다. | 실험의 뒤에 사용자의 `known_marketplaces.json`에 `trealworld`가 없다. |
+| E4 | 로컬 경로의 마켓플레이스는 플러그인을 복사하지 않고 그 자리에서 읽는다. | `claude plugin list`가 `Read from: <경로>`를 냈다. |
+| E5 | `claude plugin validate --strict`는 지금의 tstack 플러그인과 trealworld의 마켓플레이스 매니페스트를 통과시킨다. | 실행했다. 끝의 코드 0. |
+| E6 | `file://`의 git URL은 마켓플레이스의 출처로 받지 않는다. | `Invalid marketplace source format`. |
+| E7 | `claude plugin eval`에는 실행하지 않고 사례만 나열하는 옵션이 없다. | `claude plugin eval --help`를 읽었다. |
+| E8 | 설치한 사본의 안에서 `tstack-check.py self`가 통과한다. | E2의 사본에서 실행했다. |
+
+### 수용 기준의 출처
+
+"누가"의 열의 값은 셋이다. **사용자**: 사용자가 결정했다 (2026-11-20). **AI**: AI가 제안했다. 사용자가 확인하지 않았다. **사용자 + AI**: 사용자가 방향을 정했고 AI가 세부를 제안했다.
+
+| 누가 | 수용 기준 | 설명 |
+|---|---|---|
+| 사용자 | AC-1.1 ~ AC-1.3 | 브레인스토밍 6.2, 6.5. |
+| 사용자 | AC-1.4, AC-1.5 | 검증의 방법으로 `validate --strict`를 골랐다. E5. |
+| AI | AC-1.6, AC-1.7 | 출처의 플러그인이 제공하는 부품과 같다 (확인: `claude plugin validate`의 "Provides"). |
+| 사용자 | AC-1.8 | 슬라이스의 끝으로 "GitHub 설치의 확인까지"를 골랐다. |
+| 사용자 | AC-1.9 | 브레인스토밍 6.2. |
+| AI | AC-1.10 | push의 전에 실제의 표면에 가장 가까운 확인이다. E4의 차이가 있다. |
+| AI | AC-2.1 ~ AC-2.3 | E2에서 나온다. |
+| AI | AC-2.4 | |
+| 사용자 + AI | AC-2.5, AC-2.6 | 사용자: MIT (브레인스토밍 6.6). AI: 플러그인마다 둔다 (N3). |
+| 사용자 + AI | AC-2.7 | 사용자: 가이드를 플러그인의 안으로 옮긴다. AI: 파일의 이름. |
+| 사용자 | AC-2.8 | 브레인스토밍 6.3, 6.5에서 나온다. |
+| AI | AC-2.9 | 브레인스토밍의 Q10, D8. |
+| AI | AC-2.10 | 사용자가 정한 "옮겨서 깨지는 것만 고친다"의 적용이다. |
+| 사용자 + AI | AC-2.11 ~ AC-2.13 | 사용자: 설치의 방법은 마켓플레이스의 등록과 플러그인의 설치다. `--plugin-dir`는 로컬의 변경을 적용하는 방법으로 넣는다. AI: 문장, README에도 적용한 것, AC-2.13의 경로의 규칙. |
+| 사용자 + AI | AC-2.14 | 사용자: 출처 커밋의 고정 URL을 쓴다 (일지의 스텝 8의 6번). AI: 문장과 "고정 URL"의 뜻. |
+| AI | AC-3.1 ~ AC-3.4 | 브레인스토밍의 Q12. ADR-0002. |
+| 사용자 + AI | AC-4.1 ~ AC-4.4 | 사용자: 옮기면서 결함 3개도 고친다. 사용자가 AI의 권장과 다르게 골랐다. AI: AC-4.2의 방법 (Q13). |
+| 사용자 + AI | AC-4.5 | 사용자: 사례마다 URL을 붙인다 (스텝 8의 1번). 사용자가 AI의 권장과 다르게 골랐다. AI: 문장. |
+| 사용자 + AI | AC-5.1 ~ AC-5.3 | 사용자: 브레인스토밍 6.8. AI: 비교의 기준은 마지막 릴리스의 태그다 (N5). |
+| 사용자 | AC-6.1 | 브레인스토밍 6.6. |
+| AI | AC-6.2 | N2. `plugin.json`의 `author`에서 가져왔다. |
+| 사용자 + AI | AC-6.3 ~ AC-6.5 | 사용자: 브레인스토밍 6.7, 6.5. AI: 절의 머리의 글자. |
+| 사용자 + AI | AC-6.6 | 사용자: 뿌리의 README에도 `--plugin-dir`를 넣는다 (스텝 8의 5번). AI: 문장과 명령의 글자. |

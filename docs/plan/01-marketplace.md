@@ -9,6 +9,7 @@
   - 수정 (2026-11-20): 작업 3을 끝냈다. AI가 이 줄을 더했다. 요구는 바꾸지 않았다.
   - 수정 (2026-11-20): 작업 4를 끝냈다. AI가 이 줄을 더했다. 요구는 바꾸지 않았다.
   - 수정 (2026-11-20): 작업 5을 끝냈다. AI가 이 줄을 더했다. 요구는 바꾸지 않았다.
+  - 수정 (2026-11-20): 작업 6을 끝냈다. AI가 이 줄을 더했다. 요구는 바꾸지 않았다.
 - 입력: [Spec 01](../spec/01-marketplace.md), [Domain 01](../domain/01-marketplace.md), [ADR-0001](../adr/0001-repository-layout.md), [ADR-0002](../adr/0002-move-and-provenance.md), [ADR-0003](../adr/0003-version-and-release.md), [ADR-0004](../adr/0004-verification.md)
 
 ## 방식

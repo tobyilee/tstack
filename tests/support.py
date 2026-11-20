@@ -387,3 +387,34 @@ def plugin_components(root, name):
     skills = sorted(d.name for d in (base / "skills").iterdir() if (d / "SKILL.md").is_file()) if (base / "skills").is_dir() else []
     agents = sorted(f.stem for f in (base / "agents").iterdir() if f.is_file() and f.suffix == ".md") if (base / "agents").is_dir() else []
     return {"skills": skills, "agents": agents}
+
+
+# ------------------------------------- 라이선스와 README: AC-2.4, AC-2.5, AC-6.1, AC-6.2, R6
+
+COPYRIGHT_LINE = "Copyright (c) 2026 Toby Lee"
+
+
+def license_problems(root):
+    """`LICENSE` 3개와 플러그인의 `README.md`의 문제를 글로 준다."""
+    root = Path(root)
+    problems = []
+    top = root / "LICENSE"
+    top_text = top.read_text(encoding="utf-8") if top.is_file() else None
+    if top_text is None:
+        problems.append("AC-6.1: 저장소의 뿌리에 LICENSE가 없다")
+    else:
+        lines = top_text.splitlines()
+        first = lines[0].strip() if lines else ""
+        if first != "MIT License":
+            problems.append("AC-6.1: 뿌리의 LICENSE의 첫 줄이 MIT License가 아니다: %s" % first)
+        if COPYRIGHT_LINE not in [line.strip() for line in lines]:
+            problems.append("AC-6.2: 뿌리의 LICENSE에 저작권의 줄이 없다: %s" % COPYRIGHT_LINE)
+    for name in plugin_folders(root):
+        folder = root / PLUGINS_DIR / name
+        if not (folder / "README.md").is_file():
+            problems.append("AC-2.4: 플러그인의 폴더에 README.md가 없다: %s/%s" % (PLUGINS_DIR, name))
+        if not (folder / "LICENSE").is_file():
+            problems.append("AC-2.5: 플러그인의 폴더에 LICENSE가 없다: %s/%s" % (PLUGINS_DIR, name))
+        elif top_text is not None and (folder / "LICENSE").read_text(encoding="utf-8") != top_text:
+            problems.append("R6: LICENSE의 내용이 저장소의 뿌리의 것과 다르다: %s/%s/LICENSE" % (PLUGINS_DIR, name))
+    return sorted(problems)

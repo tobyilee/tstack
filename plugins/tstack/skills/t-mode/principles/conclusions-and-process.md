@@ -15,4 +15,4 @@
 
 **쓴 흔적:** `scripts/tstack-check.py journal`이 통과다. plan의 상태의 줄에 더한 일이 적혀 있다.
 
-**사례:** 스텝 28 → 30. plan에 넣은 "`allowEmptyShould`를 지운다"가 다음 작업의 검증 항목으로 돌아왔다.
+**사례:** 스텝 28 → 30. plan에 넣은 "`allowEmptyShould`를 지운다"가 다음 작업의 검증 항목으로 돌아왔다. 일지: [2026-11-17](https://github.com/tobyilee/trealworld/blob/68fc5e24b76724b37dc9cc7e974121ea347c08ed/docs/journal/2026-11-17.md).

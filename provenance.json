@@ -8,7 +8,7 @@
       "from": ".claude/skills/explain-diff/SKILL.md",
       "to": "plugins/explain-diff/skills/explain-diff/SKILL.md",
       "blob": "46a3f02a23e7a7f8423e3b23f9f8113722773389",
-      "changed": null
+      "changed": "\"the user's house style\"을 \"this skill's default style\"로 바꿨다 (AC-4.3)."
     },
     {
       "from": ".claude/skills/explain-diff/assets/template.html",
@@ -356,73 +356,73 @@
       "from": "tstack/skills/t-mode/principles/assert-the-reason.md",
       "to": "plugins/tstack/skills/t-mode/principles/assert-the-reason.md",
       "blob": "4126f0207a4abc0ca5231777b8819a1719e9ad09",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/principles/conclusions-and-process.md",
       "to": "plugins/tstack/skills/t-mode/principles/conclusions-and-process.md",
       "blob": "b9fe3c1b99d7b003e41cfd4f395fe7167404e642",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/principles/encode-in-checks.md",
       "to": "plugins/tstack/skills/t-mode/principles/encode-in-checks.md",
       "blob": "979d0e838b6c94749649d72251f87b1a56769023",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/principles/fix-the-cause.md",
       "to": "plugins/tstack/skills/t-mode/principles/fix-the-cause.md",
       "blob": "649410840626c9833863fd1c3ff196315dc2abf0",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/principles/label-the-claim.md",
       "to": "plugins/tstack/skills/t-mode/principles/label-the-claim.md",
       "blob": "8d4c70b6c90f26620a03bcf8246503189be3b93d",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/principles/mark-the-source.md",
       "to": "plugins/tstack/skills/t-mode/principles/mark-the-source.md",
       "blob": "7e925b37991a7b4fa15bcc637ba1ed83ddc3668b",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/principles/real-surface.md",
       "to": "plugins/tstack/skills/t-mode/principles/real-surface.md",
       "blob": "e18bdf82819b202e0f19a0fc0b3950eafe20da00",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/principles/rules-as-written.md",
       "to": "plugins/tstack/skills/t-mode/principles/rules-as-written.md",
       "blob": "fa595d5fe44964e113294d711a0fc76912a65eb2",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/principles/scope-of-the-step.md",
       "to": "plugins/tstack/skills/t-mode/principles/scope-of-the-step.md",
       "blob": "253311889797c62f159a9364177519d2164e83e9",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/principles/see-it-fail.md",
       "to": "plugins/tstack/skills/t-mode/principles/see-it-fail.md",
       "blob": "e47baa0d921af80986450b5116ec9a8d8f10897f",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/principles/trace-by-id.md",
       "to": "plugins/tstack/skills/t-mode/principles/trace-by-id.md",
       "blob": "0a39d50e5d32904715a6d334854fae20087b176c",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/principles/user-drives-the-pace.md",
       "to": "plugins/tstack/skills/t-mode/principles/user-drives-the-pace.md",
       "blob": "4c87c83c2558a0c6688689b68146566afbc5cc8c",
-      "changed": null
+      "changed": "\"사례\"의 줄에 출처 커밋의 일지의 고정 URL을 붙였다 (AC-4.5)."
     },
     {
       "from": "tstack/skills/t-mode/references/doc-style.md",
@@ -446,7 +446,7 @@
       "from": "tstack/skills/t-mode/references/project-rules.md",
       "to": "plugins/tstack/skills/t-mode/references/project-rules.md",
       "blob": "53c0b03860ed1a084ebe0f0c0bc432c77c90a565",
-      "changed": null
+      "changed": "규칙의 블록의 MAY의 키워드를 굵게 썼다 (AC-4.4)."
     },
     {
       "from": "tstack/skills/t-mode/references/report-template.md",
@@ -470,7 +470,7 @@
       "from": "tstack/skills/t-reflect/SKILL.md",
       "to": "plugins/tstack/skills/t-reflect/SKILL.md",
       "blob": "cd5ed24ca1ee7d5582fdab19a065b2b4b5136d45",
-      "changed": null
+      "changed": "7번 단계: 설치한 사본을 고치지 않는다. 수정안을 작업 사본에 적용하고 `--plugin-dir`로 확인한다 (AC-4.1, AC-4.2)."
     }
   ]
 }

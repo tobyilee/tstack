@@ -496,3 +496,19 @@ def text_problems(root):
             if PLUGIN_DIR_COMMAND not in text:
                 problems.append("AC-2.12: `claude --plugin-dir`의 명령이 없다: %s" % rel)
     return sorted(problems)
+
+
+# ------------------------------------------------------------------ AC-4.4
+
+def first_code_block(text):
+    """Markdown의 첫 코드 블록의 내용을 준다. 울타리의 줄은 뺀다."""
+    lines, inside = [], False
+    for line in text.splitlines():
+        if line.lstrip().startswith("```"):
+            if inside:
+                break
+            inside = True
+            continue
+        if inside:
+            lines.append(line)
+    return "\n".join(lines) + ("\n" if lines else "")

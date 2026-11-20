@@ -105,7 +105,7 @@ Before handing over, verify:
 
 - Every hunk from the coverage map appears in section 4 or 5.
 - Every code excerpt matches the real diff (copy it; do not retype from memory).
-- Each widget passes the gate and works without network access (no external scripts except optionally one pinned CDN library; vanilla JS is preferred). The two font stylesheet `<link>`s in the template are the only other external requests; keep them, and keep the design tokens in `:root` as they are — they match the user's house style (Pretendard + JetBrains Mono, paper/ink/accent palette). Widgets and SVGs take colors from these tokens, never hard-coded hex.
+- Each widget passes the gate and works without network access (no external scripts except optionally one pinned CDN library; vanilla JS is preferred). The two font stylesheet `<link>`s in the template are the only other external requests; keep them, and keep the design tokens in `:root` as they are — they are this skill's default style (Pretendard + JetBrains Mono, paper/ink/accent palette). Widgets and SVGs take colors from these tokens, never hard-coded hex.
 - The page prints sensibly: widgets show their static fallback, `<details>` content is readable.
 - The intuition sentence appears before any code.
 - The quiz is there, every question can be answered from the document alone, no answer is a detail to memorize, and each question's `data-answer` matches the option you explain as correct.

@@ -512,3 +512,70 @@ def first_code_block(text):
         if inside:
             lines.append(line)
     return "\n".join(lines) + ("\n" if lines else "")
+
+
+
+# ------------------------------------------------------------ ADR-0004 규칙 1, 4
+
+def _test_files(root):
+    return [(rel, path) for rel, path in python_files(root) if rel.startswith("tests/") and path.name.startswith("test_")]
+
+
+def _is_test(node):
+    return isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test")
+
+
+def tests_outside_testcase(root):
+    """`unittest.TestCase`의 메서드가 아닌 테스트를 (파일, 이름)으로 준다. ADR-0004 규칙 1."""
+    found = []
+    for rel, path in _test_files(root):
+        tree = parse(path)
+        classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
+
+        def is_testcase(cls, seen=()):
+            for base in cls.bases:
+                name = base.attr if isinstance(base, ast.Attribute) else getattr(base, "id", "")
+                if name == "TestCase":
+                    return True
+                if name in classes and name not in seen and is_testcase(classes[name], seen + (name,)):
+                    return True
+            return False
+
+        good = set()
+        for cls in classes.values():
+            if is_testcase(cls):
+                good |= {id(node) for node in cls.body if _is_test(node)}
+        for node in sorted((n for n in ast.walk(tree) if _is_test(n)), key=lambda n: n.lineno):
+            if id(node) not in good:
+                found.append((rel, node.name))
+    return found
+
+
+def id_of_test(name):
+    """테스트의 이름의 ID의 표지를 문서의 ID로 바꾼다: `test_ac1_10_x` → `AC-1.10`."""
+    match = re.match(r"^test_(?:ac(\d+)_(\d+)|r(\d+)|adr(\d{4})_(\d+))_", name)
+    if not match:
+        return None
+    goal, number, rule, adr, adr_rule = match.groups()
+    if goal:
+        return "AC-%s.%s" % (goal, number)
+    if rule:
+        return "R%s" % rule
+    return "ADR-%s 규칙 %s" % (adr, adr_rule)
+
+
+def tests_without_id_message(root):
+    """자기의 ID를 글로 가지지 않은 테스트를 (파일, 이름, ID)로 준다. ADR-0004 규칙 4.
+
+    테스트의 함수의 안의 글자의 상수에 ID가 있어야 한다. ID의 뒤에 숫자가 이어지면 다른 ID다.
+    """
+    found = []
+    for rel, path in _test_files(root):
+        for node in sorted((n for n in ast.walk(parse(path)) if _is_test(n)), key=lambda n: n.lineno):
+            wanted = id_of_test(node.name)
+            if wanted is None:
+                continue
+            pattern = re.compile(re.escape(wanted) + r"(?!\d)")
+            if not any(pattern.search(text) for text in _strings(node)):
+                found.append((rel, node.name, wanted))
+    return found

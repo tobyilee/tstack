@@ -41,29 +41,28 @@ def good_tree(tmp):
 class Adr0001Layout(unittest.TestCase):
     """ADR-0001의 규칙 1 ~ 5. `support.layout_problems`가 규칙마다 문제의 글을 준다."""
 
-    def check_rule(self, number):
-        prefix = "ADR-0001 규칙 %d:" % number
+    def check_rule(self, prefix):
         found = only(support.layout_problems(ROOT), prefix)
         self.assertEqual([], found, "%s 이 저장소의 구조가 규칙을 어긴다: %s" % (prefix, found))
 
     def test_adr0001_1_plugin_folders_are_under_plugins(self):
-        self.check_rule(1)
+        self.check_rule("ADR-0001 규칙 1:")
 
     def test_adr0001_2_repository_folders_are_outside_plugins(self):
-        self.check_rule(2)
+        self.check_rule("ADR-0001 규칙 2:")
 
     def test_adr0001_3_evals_are_in_the_explain_diff_plugin_folder(self):
-        self.check_rule(3)
+        self.check_rule("ADR-0001 규칙 3:")
 
     def test_adr0001_4_guide_is_in_the_tstack_plugin_folder(self):
-        self.check_rule(4)
+        self.check_rule("ADR-0001 규칙 4:")
 
     def test_adr0001_5_root_has_no_skills_or_agents(self):
-        self.check_rule(5)
+        self.check_rule("ADR-0001 규칙 5:")
 
     def test_adr0001_1_checker_accepts_a_good_tree(self):
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual([], support.layout_problems(good_tree(tmp)), "ADR-0001: 구조를 지키는 폴더에는 문제가 없다")
+            self.assertEqual([], support.layout_problems(good_tree(tmp)), "ADR-0001 규칙 1: 구조를 지키는 폴더에는 문제가 없다")
 
     def test_adr0001_1_checker_finds_a_missing_folder_and_a_stray_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:

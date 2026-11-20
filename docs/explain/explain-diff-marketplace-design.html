@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tstack 마켓플레이스: 옮기기 전에 요구를 고정한다</title>
+<!-- Fonts: Pretendard (dynamic subset loads only the glyphs the page uses) + JetBrains Mono.
+     Offline, the font stacks below fall back to system fonts; the layout does not change. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* Design tokens — same body palette and fonts as the ai-seminar-2026-11 deck.
+   paper / surface / ink / ink-soft / line / accent / warn. Dark mode uses the deck's cover colors. */
+:root{
+  --bg:#F6F4EE;        /* paper */
+  --card:#FFFFFF;      /* surface */
+  --fg:#15171C;        /* ink */
+  --muted:#5A606C;     /* ink-soft */
+  --line:#DDD9CE;
+  --accent:#2F55E0; --accent-soft:#E8EDFD;
+  --warn:#E2572B;   --warn-soft:#FCEBE4;
+  --add-bg:#E3F1E6; --add-fg:#1E6B3A;          /* functional green: diff additions only */
+  --del-bg:var(--warn-soft); --del-fg:#B8401C; /* removals use the deck's warn color */
+  --code-bg:#EFECE4; --hl:#FFF0B8;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --sans:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171C; --card:#1D2027; --fg:#F2F3F5; --muted:#B9BECA; --line:#343844;
+    --accent:#8FA6FF; --accent-soft:#232B4A;
+    --warn:#F08A63; --warn-soft:#3A2219;
+    --add-bg:#16301F; --add-fg:#8FD6A4; --del-bg:#3A2219; --del-fg:#F5A285;
+    --code-bg:#1A1C22; --hl:#4A4220;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171C; --card:#1D2027; --fg:#F2F3F5; --muted:#B9BECA; --line:#343844;
+  --accent:#8FA6FF; --accent-soft:#232B4A;
+  --warn:#F08A63; --warn-soft:#3A2219;
+  --add-bg:#16301F; --add-fg:#8FD6A4; --del-bg:#3A2219; --del-fg:#F5A285;
+  --code-bg:#1A1C22; --hl:#4A4220;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.7 var(--sans);word-break:keep-all;-webkit-font-smoothing:antialiased}
+strong,b{font-weight:700}
+a{color:var(--accent)}
+.warn{color:var(--warn)}
+.callout-warn{background:var(--warn-soft);border-left:4px solid var(--warn);border-radius:8px;padding:10px 14px;margin:14px 0;font-size:15px}
+main{max-width:780px;margin:0 auto;padding:40px 16px 80px}
+h1,h2,h3,h4{font-family:var(--sans);line-height:1.25;letter-spacing:-.02em}
+h1{font-size:2.1rem;font-weight:800;margin:0 0 .3em}
+h2{font-size:1.45rem;font-weight:800;margin:2.4em 0 .6em;padding-top:.5em;border-top:2px solid var(--line)}
+h3{font-size:1.12rem;font-weight:700;margin:1.8em 0 .4em}
+.kicker{font:700 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 6px}
+.meta{font:14px/1.5 var(--sans);color:var(--muted)}
+.meta span+span::before{content:" · "}
+.assumption{font:14px/1.5 var(--sans);background:var(--accent-soft);border-radius:8px;padding:10px 14px;margin:16px 0}
+.intuition{font-size:1.25rem;font-weight:600;line-height:1.5;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 10px 10px 0;padding:12px 18px;margin:1em 0}
+code{font:0.88em var(--mono);background:var(--code-bg);padding:1px 5px;border-radius:4px}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 14px;margin:12px 0}
+details summary{cursor:pointer;font:600 15px var(--sans)}
+figure{margin:20px 0}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+figcaption{font:14px var(--sans);color:var(--muted);text-align:center;margin-top:6px}
+.step{margin-top:2.2em}
+.why{font-family:var(--sans);font-size:15px;color:var(--muted)}
+.file-role{font:14px/1.5 var(--sans);margin:14px 0 4px}
+.file-role b{font-family:var(--mono);font-weight:600}
+.bridge{font-family:var(--sans);font-size:15px;border-top:1px dashed var(--line);padding-top:10px;margin-top:14px}
+.bridge::before{content:"→ ";color:var(--accent);font-weight:700}
+/* diff blocks: one <span> per line with class add / del / ctx / skip */
+pre.diff{font:13px/1.5 var(--mono);background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:10px 0;overflow-x:auto;margin:6px 0 10px}
+pre.diff span{display:block;padding:0 14px;white-space:pre}
+pre.diff .add{background:var(--add-bg);color:var(--add-fg)}
+pre.diff .add::before{content:"+ "}
+pre.diff .del{background:var(--del-bg);color:var(--del-fg)}
+pre.diff .del::before{content:"- "}
+pre.diff .ctx::before{content:"  "}
+pre.diff .skip{color:var(--muted);font-style:italic}
+pre.diff .mark{background:var(--hl)}
+/* widgets */
+.widget{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:20px 0}
+.widget .mirrors{font:12px var(--sans);color:var(--muted);margin-top:8px}
+.widget .readout{font:13px/1.6 var(--mono)}
+.widget canvas,.widget svg{max-width:100%;touch-action:none}
+.static-fallback{display:none}
+ul.other{font:15px/1.6 var(--sans)}
+/* quiz: explanations stay hidden until the reader answers (recall first, then feedback) */
+.quiz-intro{background:var(--accent-soft);border-radius:8px;padding:10px 14px;font-size:15px}
+ol.quiz{padding-left:0;list-style:none;counter-reset:q}
+ol.quiz>li{counter-increment:q;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.q-text{font-weight:700;margin:0 0 10px}
+.q-text::before{content:"Q" counter(q) ". ";font-family:var(--mono);color:var(--accent)}
+.opts{display:grid;gap:8px}
+.opts button{font:15px/1.5 var(--sans);text-align:left;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+.opts button:hover:not(:disabled){border-color:var(--accent)}
+.opts button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.opts button.right{background:var(--add-bg);color:var(--add-fg);border-color:var(--add-fg);font-weight:600}
+.opts button.wrong{background:var(--del-bg);color:var(--del-fg);border-color:var(--del-fg)}
+.opts button:disabled{cursor:default}
+.explain{font-size:15px;border-top:1px dashed var(--line);margin-top:12px;padding-top:10px}
+.explain p{margin:0 0 6px}
+.quiz-result{font-weight:700;border-radius:8px;padding:10px 14px;margin:14px 0}
+.quiz-result.pass{background:var(--add-bg);color:var(--add-fg)}
+.quiz-result.fail{background:var(--warn-soft);color:var(--fg);border-left:4px solid var(--warn)}
+.quiz-retry{font:600 14px var(--sans);color:var(--accent);background:none;border:1px solid var(--accent);border-radius:8px;padding:6px 12px;cursor:pointer}
+.answer-key{display:none;font-size:14px}
+@media print{
+  .explain,.quiz-result,.quiz-retry{display:none!important}
+  .answer-key{display:block;break-before:page}
+  .opts button{background:none;color:#000;border-color:#999}
+  body{background:#fff;color:#000;font-size:11pt}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  main{max-width:none;padding:0}
+  .widget .live{display:none}
+  .static-fallback{display:block}
+  details{border:none;padding:0}
+  details>summary{list-style:none}
+  pre.diff{white-space:pre-wrap;break-inside:avoid}
+  h2,h3{break-after:avoid}
+}
+</style>
+<style>
+/* 이 문서가 더한 것: 표와 라벨. 색은 틀의 토큰만 쓴다. */
+table{border-collapse:collapse;width:100%;font-size:15px;margin:12px 0;background:var(--card)}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:700}
+.tag{font:700 12px var(--mono);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.tag.ok{background:var(--add-bg);color:var(--add-fg)}
+.tag.read{background:var(--accent-soft);color:var(--accent)}
+.tag.guess{background:var(--warn-soft);color:var(--warn)}
+svg text{font-family:var(--sans)}
+svg .mono{font-family:var(--mono)}
+</style>
+</head>
+<body>
+<main>
+
+
+<header>
+  <p class="kicker">explain-diff · 설계 + 첫 작업</p>
+  <h1>옮기기 전에, "설치해서 쓸 수 있다"를 검사가 판정하는 문장으로 고정했다</h1>
+  <div class="meta"><span>tstack 저장소의 작업 트리 (커밋이 아직 없다. 가지 <code>main</code>)</span><span>11 files</span><span>+1276 / −0</span></div>
+  <div class="assumption"><b>독자의 가정.</b> tstack을 만든 사람이다. spec → domain → ADR → plan의 흐름과 ID의 규칙을 안다. 그래서 그 부분은 한 줄로 줄였다. Claude Code의 마켓플레이스가 실제로 어떻게 동작하는지는 이번에 실험으로 처음 확인했다. 그래서 그 부분을 길게 썼다.</div>
+</header>
+
+<section id="background">
+  <h2>1. 먼저 알아야 하는 것</h2>
+
+  <h3>전의 모습: 두 도구는 남의 집에 살았다</h3>
+  <p>tstack과 explain-diff는 trealworld라는 Spring 프로젝트의 안에서 태어났다. 그 프로젝트의 일지에서 뽑은 도구라서 자연스러운 자리였다. 그런데 다른 프로젝트와 다른 사람이 쓰려면 그 자리가 문제가 된다.</p>
+  <table>
+    <tr><th>도구</th><th>trealworld에서의 자리</th><th>문제</th></tr>
+    <tr><td>tstack</td><td><code>tstack/</code> (플러그인, 파일 34개)</td><td>설치는 되는 모양이다. 그런데 가이드가 폴더의 밖에 있다.</td></tr>
+    <tr><td>explain-diff</td><td><code>.claude/skills/explain-diff/</code> (파일 43개)</td><td>플러그인이 아니다. 그 프로젝트에서만 뜬다.</td></tr>
+    <tr><td>가이드</td><td><code>tstack-guide.md</code> (뿌리, 356줄)</td><td>설치한 사람이 받지 못한다.</td></tr>
+  </table>
+
+  <h3>마켓플레이스가 하는 일 세 가지</h3>
+  <p>이 변경의 요구는 대부분 아래의 세 동작에서 나온다. 둘은 이번에 격리된 설정 폴더에서 실험으로 확인했다.</p>
+  <table>
+    <tr><th>#</th><th>동작</th><th>어떻게 알았는가</th><th>이 변경에서 나온 요구</th></tr>
+    <tr><td>①</td><td>마켓플레이스는 <b>목록 파일 하나</b>다: 뿌리의 <code>.claude-plugin/marketplace.json</code>. 플러그인의 이름과 폴더를 적는다.</td><td><span class="tag ok">확인</span> trealworld의 매니페스트가 <code>validate</code>를 통과한다</td><td>AC-1.1 ~ AC-1.3, R1, R2</td></tr>
+    <tr><td>②</td><td>설치는 <b>플러그인의 폴더만</b> 복사한다. 폴더의 밖의 파일은 설치한 사본에 없다.</td><td><span class="tag ok">확인</span> GitHub에서 설치한 사본의 파일 34개가 <code>git ls-files tstack</code>과 같았다. 밖의 파일은 0개였다</td><td>목표 2 전체 (AC-2.1 ~ AC-2.13), R6</td></tr>
+    <tr><td>③</td><td><code>plugin.json</code>의 <code>version</code>은 <b>고정 핀</b>이다. 그 글자가 바뀔 때까지 사용자는 옛 사본을 쓴다.</td><td><span class="tag read">읽음 (agent)</span> subagent가 문서에서 읽었다. 직접 실험하지 않았다</td><td>목표 5 (AC-5.1 ~ AC-5.3), R3 ~ R5</td></tr>
+  </table>
+  <p>②에는 함정이 하나 더 있다. <b>로컬 경로</b>로 등록한 마켓플레이스는 복사하지 않고 그 자리에서 읽는다 (<span class="tag ok">확인</span> <code>claude plugin list</code>가 <code>Read from: &lt;경로&gt;</code>를 냈다). 그래서 내 컴퓨터에서 "설치가 된다"를 봐도 ②를 본 것이 아니다. 4절의 3단계와 퀴즈의 Q5가 이 차이를 쓴다.</p>
+
+  <details>
+    <summary>격리된 설정 폴더가 왜 중요한가 (<code>CLAUDE_CONFIG_DIR</code>)</summary>
+    <p>설치를 검사하려면 실제로 설치해야 한다. 그런데 검사가 내 <code>~/.claude</code>에 마켓플레이스를 등록하면 내 환경이 바뀐다. <code>CLAUDE_CONFIG_DIR</code>에 빈 임시 폴더를 주면 Claude Code는 그 폴더를 설정 폴더로 쓴다. 등록, 설치, 사본이 모두 그 안에 생긴다. 실험의 뒤에 내 <code>known_marketplaces.json</code>에는 <code>trealworld</code>가 0번 나왔다. 그리고 <code>validate</code>와 <code>install</code>은 로그인이 없는 그 폴더에서도 돌았다. 이 두 사실 때문에 "설치의 확인은 사람이 한다"가 "CI가 한다"로 바뀌었다.</p>
+  </details>
+  <details>
+    <summary>git blob 해시란 (출처의 기록이 쓰는 값)</summary>
+    <p>git은 파일의 내용마다 이름을 붙인다. 그 이름이 blob 해시다: <code>blob &lt;바이트의 수&gt;\0&lt;내용&gt;</code>의 SHA-1. 파일의 이름과 위치는 들어가지 않는다. 그래서 <code>tstack/README.md</code>를 <code>plugins/tstack/README.md</code>로 옮겨도 내용이 같으면 해시가 같다. 글자 하나가 바뀌면 해시가 다르다. Python의 <code>hashlib</code>로 계산한다. 출처 저장소를 읽지 않아도 된다.</p>
+  </details>
+  <details>
+    <summary>tstack의 문서의 흐름 (아는 내용이다. 한 줄)</summary>
+    <p>브레인스토밍은 모르는 것을, spec은 무엇을(AC), domain은 말과 불변식(R)을, ADR은 어떻게와 왜를, plan은 순서와 검증을 말한다. <code>tstack-check.py trace</code>가 AC와 R이 plan과 테스트의 이름에 있는지 센다.</p>
+  </details>
+
+  <p><b>문제.</b> 파일 78개를 다른 저장소로 옮기는 일은 쉬워 보인다. 그런데 이 일은 <b>틀려도 조용하다.</b> 링크 하나가 폴더의 밖을 가리켜도, 옮기다가 글자 하나가 바뀌어도, 버전을 올리는 것을 잊어도, 내 컴퓨터에서는 아무것도 실패하지 않는다. 실패는 모르는 사람이 GitHub에서 설치한 뒤에 드러난다.</p>
+</section>
+
+<section id="idea">
+  <h2>2. 한 장으로 보는 생각</h2>
+  <p class="intuition">파일을 하나도 옮기기 전에, 조용히 틀리는 길마다 "검사가 실패한다"는 문장을 먼저 세웠다.</p>
+  <p>이 변경에는 플러그인의 파일이 하나도 없다. 있는 것은 문서 10개와 빈 파일 1개다. 문서는 "설치해서 쓸 수 있다"라는 흐린 목표를 통과나 실패가 나오는 문장 47개(수용 기준 39개, 규칙 8개)로 바꾼다. 문장마다 ID가 있고, ID마다 plan의 작업이 있다. 뒤의 작업은 그 ID를 이름에 가진 테스트를 먼저 쓴다. 그래서 옮기는 일은 "빨간 테스트 47개를 초록으로 바꾸는 일"이 된다. 지금의 수는 47개 중 0개다.</p>
+  
+<figure>
+<svg viewBox="0 0 720 330" role="img" aria-label="옮기기 전과 뒤의 폴더의 구조">
+  <text x="170" y="20" text-anchor="middle" style="font-size:14px;font-weight:700;fill:var(--fg)">전: trealworld (출처 저장소)</text>
+  <text x="545" y="20" text-anchor="middle" style="font-size:14px;font-weight:700;fill:var(--fg)">뒤: tstack (이 저장소)</text>
+
+  <rect x="10" y="32" width="320" height="286" rx="10" style="fill:var(--card);stroke:var(--line)"/>
+  <rect x="26" y="50" width="288" height="56" rx="8" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:2"/>
+  <text x="38" y="73" class="mono" style="font-size:13px;fill:var(--fg)">tstack/</text>
+  <text x="38" y="93" style="font-size:12px;fill:var(--muted)">플러그인. 파일 34개</text>
+  <rect x="26" y="118" width="288" height="50" rx="8" style="fill:var(--warn-soft);stroke:var(--warn)"/>
+  <text x="38" y="139" class="mono" style="font-size:13px;fill:var(--fg)">tstack-guide.md</text>
+  <text x="38" y="158" style="font-size:12px;fill:var(--muted)">플러그인의 밖. 설치한 사본에 없다</text>
+  <rect x="26" y="180" width="288" height="50" rx="8" style="fill:var(--warn-soft);stroke:var(--warn)"/>
+  <text x="38" y="201" class="mono" style="font-size:13px;fill:var(--fg)">.claude/skills/explain-diff/</text>
+  <text x="38" y="220" style="font-size:12px;fill:var(--muted)">프로젝트의 스킬. 설치의 대상이 아니다</text>
+  <rect x="26" y="242" width="288" height="60" rx="8" style="fill:var(--bg);stroke:var(--line)"/>
+  <text x="38" y="265" class="mono" style="font-size:13px;fill:var(--fg)">src/ docs/ build.gradle.kts …</text>
+  <text x="38" y="285" style="font-size:12px;fill:var(--muted)">RealWorld의 백엔드. 도구와 관계가 없다</text>
+
+  <path d="M338 175 H372" style="stroke:var(--accent);stroke-width:2.5;fill:none"/>
+  <path d="M366 168 L378 175 L366 182 Z" style="fill:var(--accent)"/>
+
+  <rect x="386" y="32" width="324" height="286" rx="10" style="fill:var(--card);stroke:var(--line)"/>
+  <rect x="402" y="50" width="292" height="72" rx="8" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:2"/>
+  <text x="414" y="73" class="mono" style="font-size:13px;fill:var(--fg)">plugins/tstack/</text>
+  <text x="414" y="93" style="font-size:12px;fill:var(--muted)">skills/ agents/ README.md LICENSE</text>
+  <text x="414" y="111" class="mono" style="font-size:12px;font-weight:700;fill:var(--accent)">+ GUIDE.md</text>
+  <rect x="402" y="134" width="292" height="72" rx="8" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:2"/>
+  <text x="414" y="157" class="mono" style="font-size:13px;fill:var(--fg)">plugins/explain-diff/</text>
+  <text x="414" y="177" style="font-size:12px;fill:var(--muted)">skills/explain-diff/ README.md LICENSE</text>
+  <text x="414" y="195" class="mono" style="font-size:12px;font-weight:700;fill:var(--accent)">+ evals/ (스킬의 폴더에서 나왔다)</text>
+  <rect x="402" y="218" width="292" height="84" rx="8" style="fill:var(--bg);stroke:var(--line)"/>
+  <text x="414" y="241" class="mono" style="font-size:13px;fill:var(--fg)">.claude-plugin/marketplace.json</text>
+  <text x="414" y="261" class="mono" style="font-size:13px;fill:var(--fg)">docs/ tests/ scripts/ provenance.json</text>
+  <text x="414" y="285" style="font-size:12px;fill:var(--muted)">플러그인의 밖. 설치한 사본에 들어가지 않는다</text>
+</svg>
+<figcaption>파란 테두리가 "설치가 복사하는 범위"다. 뒤의 그림에서는 사용자가 필요로 하는 것이 모두 파란 테두리의 안에 있다.</figcaption>
+</figure>
+
+  <p>조용히 틀리는 길과 그 길을 막는 문장은 아래와 같다. 4절은 이 표를 문서의 순서로 다시 걷는다.</p>
+  <table>
+    <tr><th>조용히 틀리는 길</th><th>막는 문장</th><th>검사가 보는 것</th></tr>
+    <tr><td>플러그인의 글이 폴더의 밖을 가리킨다</td><td>AC-2.1, AC-2.2</td><td>Markdown의 상대 링크</td></tr>
+    <tr><td>옮기다가 내용이 바뀐다</td><td>AC-3.2</td><td>파일 78개의 git blob 해시</td></tr>
+    <tr><td>버전을 올리지 않고 push한다</td><td>AC-5.1</td><td>마지막 릴리스의 태그와의 차이</td></tr>
+    <tr><td>설치의 안내가 옛 저장소를 가리킨다</td><td>AC-2.8, AC-2.11, AC-2.13</td><td>설치 명령의 줄, <code>--plugin-dir</code>의 줄</td></tr>
+    <tr><td>내 컴퓨터에서만 설치가 된다</td><td>AC-1.8</td><td>GitHub에서 설치한 사본</td></tr>
+  </table>
+</section>
+
+<section id="walkthrough">
+  <h2>4. 변경을 순서대로</h2>
+  <p class="why">3절(직접 해 보기)은 없다. 이 변경에는 실행하는 코드가 없다. 위젯이 옮길 "실제의 논리"가 아직 없어서 넣지 않았다. 아래의 순서는 파일의 순서가 아니고 생각의 순서다: 규칙 → 질문 → 요구 → 방법 → 순서 → 첫 작업.</p>
+
+  <div class="step" id="step1">
+    <h3>1단계 — 일하는 규칙을 먼저 고정한다</h3>
+    <p class="why">문서를 쓰기 전에 문서를 쓰는 규칙이 있어야 한다. 뒤의 문서 9개가 모두 이 규칙을 따른다.</p>
+    <p class="file-role"><b>CLAUDE.md</b> (25줄) — 이 저장소에서 사람과 AI가 따르는 규칙. 세션마다 읽힌다.</p>
+    <pre class="diff" data-file="CLAUDE.md"><span class="add" data-line="9">- 스텝이 끝날 때마다 `docs/journal/YYYY-MM-DD.md`에 **반드시 기록해야 한다.** (MUST)</span><span class="skip">… 5줄 생략 …</span><span class="add" data-line="15">- 문서의 언어: 한국어. 코드 식별자, 경로, 기술 용어는 원문을 **쓸 수 있다.** (MAY)</span><span class="add" data-line="16">- 저장소의 뿌리의 README는 영어의 짧은 절과 한국어의 본문을 둔다.</span><span class="add" data-line="17">- 문서의 요구의 수준은 RFC 2119의 키워드로 **반드시 써야 한다.** (MUST)</span><span class="add" data-line="18">  - 키워드의 한국어: MUST는 `반드시 ~해야 한다`, MUST NOT은 `절대 ~해서는 안 된다`, SHOULD는 `~하는 것을 권장한다`, MAY는 `~할 수 있다`.</span><span class="add" data-line="19">  - 키워드는 굵게 쓴다. 굵은 키워드가 없는 문장은 설명이다.</span><span class="add" data-line="20">- 문서의 문장은 ASD-STE100의 원칙으로 **반드시 써야 한다.** (MUST)</span><span class="add" data-line="21">  - 주어를 적는다. 능동으로 쓴다.</span><span class="add" data-line="22">  - 문장을 짧게 쓴다. 한 문장에 요구는 하나다.</span><span class="add" data-line="23">  - 한 개념에 한 용어를 쓴다. 용어는 domain 문서의 표를 따른다.</span><span class="add" data-line="24">  - 범위가 흐린 말을 쓰지 않는다. 숫자에는 단위를 적는다.</span><span class="add" data-line="25">- `tstack-check.py keywords`가 키워드의 규칙을 검사한다. 문서를 쓰거나 고친 뒤에 돌린다.</span></pre>
+    <p>볼 곳은 <b>MUST가 붙은 세 줄</b>이다: 일지, RFC 2119, ASD-STE100. 그리고 마지막 줄이 규칙과 검사를 짝짓는다. 실제로 이 파일의 "쓸 수 있다. (MAY)"는 처음에 굵지 않았고, <code>keywords</code>가 그 줄을 잡았다. 그 줄은 tstack의 틀(<code>project-rules.md</code>)의 원문이었다. 도구의 글이 도구의 검사에 걸린 것이다. 이것이 뒤에 AC-4.4가 됐다.</p>
+    <p class="bridge">규칙은 정했다. 그런데 무엇을 만들지는 아직 모른다. 모르는 것을 먼저 적는다.</p>
+  </div>
+
+  <div class="step" id="step2">
+    <h3>2단계 — 모르는 것을 적고, 질문을 닫는다</h3>
+    <p class="why">요구를 쓰기 전에 사실과 추측을 나눈다. 사용자만 정하는 것은 묻는다. 버린 생각은 지우지 않고 취소선으로 남긴다.</p>
+    <p class="file-role"><b>docs/brainstorming/00-kickoff.md</b> (236줄) — 브레인스토밍. 읽은 사실 26개, 가설 6개, 빈칸 12개, 아이디어 11개, 질문 15개, 결정.</p>
+    <pre class="diff" data-file="docs/brainstorming/00-kickoff.md"><span class="add" data-line="32">| F8 | tstack은 explain-diff를 이름으로만 부른다. `playbooks/review.md`의 5번: &quot;`explain-diff` 스킬이 있으면 설명 문서를 만든다. 스킬이 없으면 `skip`으로 남긴다.&quot; `tstack-guide.md`의 9.4는 이것을 의도한 선택으로 적는다 (&quot;내용을 복사하지 않는다&quot;). explain-diff는 tstack을 부르지 않는다. | 읽음 |</span><span class="skip">… 16줄 생략 …</span><span class="add" data-line="49">| D3 | 설치는 플러그인의 폴더만 캐시에 복사한다. 폴더의 밖의 파일은 복사하지 않는다. `../`로 나가는 경로는 거부된다. | 읽음 (agent) |</span><span class="add" data-line="50">| D4 | 버전의 순서: `plugin.json`의 `version` → 마켓플레이스의 항목의 `version` → git 커밋의 SHA. `plugin.json`이 `version`을 고정하면, 그 글자가 바뀔 때까지 사용자는 캐시의 사본을 쓴다. | 읽음 (agent) |</span><span class="skip">… 27줄 생략 …</span><span class="add" data-line="78">| G1 | **설치한 플러그인은 캐시의 사본이다 (D3). `t-reflect`는 tstack의 파일을 고친다.** 캐시의 사본을 고치면 다음 업데이트에서 사라진다. | 회고의 결과를 원본에 넣는 길이 필요하다. 지금은 trealworld의 안에 원본이 있어서 문제가 없다. |</span><span class="skip">… 16줄 생략 …</span><span class="add" data-line="95">| I1 | 플러그인 2개를 둔다: `tstack`, `explain-diff`. 마켓플레이스 하나가 둘을 가진다. | F8의 느슨한 연결을 그대로 둔다. explain-diff만 설치하는 사람이 tstack을 받지 않는다. eval이 플러그인의 뿌리의 `evals/`에 맞는다 (G3). | 설치가 두 번이다. 스킬의 이름이 `/explain-diff:explain-diff`가 된다. |</span><span class="add" data-line="96">| I2 | ~~I1에 더해서 tstack이 `dependencies`로 explain-diff를 요구한다 (D9).~~ 버렸다 (6.2). | tstack을 설치하면 리뷰의 5번이 항상 동작한다. | &quot;없으면 `skip`&quot;의 선택을 강제로 바꾼다. 장치가 하나 는다. |</span><span class="add" data-line="97">| I3 | ~~플러그인 1개로 합친다: tstack의 셋째 스킬 `tstack:explain-diff`.~~ 버렸다 (6.2). | 설치가 한 번이다. 버전이 하나다. | explain-diff만 쓰려는 사람이 tstack 전체를 받는다. 영어의 스킬과 한국어의 워크플로가 한 플러그인에 섞인다. |</span><span class="skip">… 43줄 생략 …</span><span class="add" data-line="141">### 6.2 묶는 방식 (Q2)</span><span class="add" data-line="142"> </span><span class="add" data-line="143">- I1을 골랐다. 마켓플레이스 하나에 플러그인 2개를 둔다: `tstack`, `explain-diff`.</span><span class="add" data-line="144">- tstack은 `dependencies`로 explain-diff를 요구하지 않는다. `review.md`의 &quot;없으면 `skip`&quot;이 그대로 남는다.</span><span class="add" data-line="145">- 스킬의 이름은 `/tstack:t-mode`, `/tstack:t-reflect`, `/explain-diff:explain-diff`가 된다 (D5).</span><span class="add" data-line="146">- 버린 것: I2, I3. H3이 맞았다.</span><span class="skip">… 78줄 생략 …</span><span class="add" data-line="225">사용자가 AI의 권장과 다르게 고른 것: 내용의 수정의 범위. AI는 &quot;옮기기만 한다&quot;를 권했다. 사용자는 &quot;옮기면서 결함 3개도 고친다&quot;를 골랐다. 그 결과로 I7의 &quot;첫 릴리스가 버전의 검사의 첫 실제 사용이 된다&quot;는 생각은 버렸다. `tstack`의 첫 버전은 `0.2.0`이 됐다.</span></pre>
+    <p>세 가지를 본다.</p>
+    <ul>
+      <li><b>F8 → 6.2.</b> tstack은 explain-diff를 이름으로만 부르고, 없으면 그 단계를 건너뛴다. 이 사실이 "플러그인 2개, dependency 없음"의 근거다. 둘을 합치거나(I3) 강제로 묶으면(I2) 원래의 느슨한 연결이 바뀐다.</li>
+      <li><b>D3과 D4.</b> 1절의 ②와 ③이다. 라벨이 "읽음 (agent)"인 것에 주의한다. D3은 뒤에 실험으로 "확인"이 됐다. D4는 지금도 읽은 것이다.</li>
+      <li><b>G1.</b> ②의 결과다. <code>t-reflect</code>는 tstack의 파일을 고친다. 설치한 사본을 고치면 다음 업데이트가 지운다. trealworld의 안에서는 드러나지 않던 결함이다.</li>
+      <li><b>마지막 문단.</b> 사용자가 AI의 권장과 다르게 고른 곳이 한 곳이다. AI는 "옮기기만 한다"를 권했고, 사용자는 "옮기면서 결함 3개도 고친다"를 골랐다. 그 결과가 숫자로 남았다: 바꾼 파일 2개 → 6개, 첫 버전 <code>0.1.0</code> → <code>0.2.0</code>.</li>
+    </ul>
+    <p class="bridge">질문은 닫혔다. 이제 답을 "판정이 나오는 문장"으로 바꾼다.</p>
+  </div>
+
+  <div class="step" id="step3">
+    <h3>3단계 — "설치해서 쓸 수 있다"를 판정이 나오는 문장으로 바꾼다</h3>
+    <p class="why">이 변경의 중심이다. 2절의 표의 "막는 문장"이 여기에 있다. spec은 무엇을, domain은 말과 불변식을 말한다.</p>
+    <p class="file-role"><b>docs/spec/01-marketplace.md</b> (229줄) — spec. 목표 6개, 수용 기준 39개 (MUST 34, MUST NOT 5).</p>
+    <pre class="diff" data-file="docs/spec/01-marketplace.md"><span class="add" data-line="50">| AC-1.8 | MUST | 사용자가 GitHub의 `tobyilee/tstack`을 마켓플레이스로 등록하면, `tstack@tstack`의 설치와 `explain-diff@tstack`의 설치는 **반드시** 성공**해야 한다**. |</span><span class="skip">… 1줄 생략 …</span><span class="add" data-line="52">| AC-1.10 | MUST | 사용자가 저장소의 작업 사본의 경로를 마켓플레이스로 등록하면, 플러그인 2개의 설치는 **반드시** 성공**해야 한다**. |</span><span class="skip">… 7줄 생략 …</span><span class="add" data-line="60">| AC-2.1 | MUST NOT | 플러그인의 Markdown 파일의 상대 링크는 플러그인의 폴더의 밖을 **절대** 가리켜**서는 안 된다**. |</span><span class="add" data-line="61">| AC-2.2 | MUST | 플러그인의 Markdown 파일의 상대 링크는 **반드시** 있는 파일이나 있는 폴더를 가리켜**야 한다**. |</span><span class="skip">… 8줄 생략 …</span><span class="add" data-line="70">| AC-2.11 | MUST | 가이드와 플러그인 `tstack`의 `README.md`는 설치의 방법으로 각각 **반드시** 설치 명령 2개를 적어**야 한다**: `/plugin marketplace add tobyilee/tstack`, `/plugin install tstack@tstack`. |</span><span class="add" data-line="71">| AC-2.12 | MUST | 가이드와 플러그인 `tstack`의 `README.md`는 로컬의 변경을 바로 적용하는 방법으로 각각 **반드시** `claude --plugin-dir`의 명령을 적어**야 한다**. |</span><span class="add" data-line="72">| AC-2.13 | MUST | 플러그인의 파일의 `--plugin-dir`의 줄은 **반드시** 경로 `plugins/&lt;플러그인의 이름&gt;`을 가져**야 한다**. |</span><span class="skip">… 12줄 생략 …</span><span class="add" data-line="85">| AC-3.2 | MUST | 옮긴 파일의 내용은, 그 파일이 &quot;출처와 다른 점&quot;의 바꾼 파일의 표에 없으면, **반드시** 출처 파일의 내용과 바이트가 같아**야 한다**. |</span><span class="skip">… 28줄 생략 …</span><span class="add" data-line="114">| AC-5.1 | MUST | 플러그인의 폴더의 파일이 마지막 릴리스의 태그의 뒤에 바뀌었고 `version`이 그 태그의 버전과 같으면, 버전의 검사는 **반드시** 실패**해야 한다**. |</span><span class="add" data-line="115">| AC-5.2 | MUST | 플러그인의 폴더의 파일이 마지막 릴리스의 태그의 뒤에 바뀌지 않았으면, 버전의 검사는 **반드시** 통과**해야 한다**. |</span><span class="add" data-line="116">| AC-5.3 | MUST | 플러그인에 릴리스의 태그가 없으면, 버전의 검사는 **반드시** 통과**해야 한다**. |</span></pre>
+    <ul>
+      <li><b>AC-1.8과 AC-1.10은 짝이다.</b> 같은 일(설치)을 두 표면에서 본다. AC-1.10은 push의 전에 되지만 복사하지 않는다. AC-1.8은 진짜지만 push의 뒤에만 된다.</li>
+      <li><b>AC-2.11 ~ AC-2.13은 리뷰 메모에서 태어났다.</b> 출처의 가이드의 <code>claude --plugin-dir ./tstack</code>은 옮기면 틀린 경로가 된다. 그런데 이 줄은 "설치 명령의 줄"의 뜻에 들지 않아서 AC-2.8이 잡지 못했다. 사용자의 답("설치는 마켓플레이스로, <code>--plugin-dir</code>는 로컬의 변경을 바로 적용할 때")이 수용 기준 3개가 됐다.</li>
+      <li><b>AC-5.1 ~ AC-5.3은 세 상태다.</b> 태그의 뒤에 바뀌었고 버전이 같다 → 실패. 바뀌지 않았다 → 통과. 태그가 없다 → 통과. 넷째 상태(얕은 clone)는 4단계의 ADR-0003에 있다.</li>
+    </ul>
+    <p class="file-role"><b>docs/domain/01-marketplace.md</b> (80줄) — domain. 용어 24개와 규칙 8개. 실행하는 모델은 없다.</p>
+    <pre class="diff" data-file="docs/domain/01-marketplace.md"><span class="add" data-line="24">| 설치한 사본 | `plugins/cache/&lt;마켓플레이스&gt;/&lt;플러그인&gt;/&lt;버전&gt;/` | Claude Code가 사용자의 설정 폴더의 안에 복사한 플러그인의 폴더. |</span><span class="add" data-line="25">| 출처 저장소 | `tobyilee/trealworld` | 플러그인을 가져온 저장소. |</span><span class="add" data-line="26">| 출처 커밋 | `68fc5e24b76724b37dc9cc7e974121ea347c08ed` | 출처 저장소에서 파일을 가져온 커밋. |</span><span class="skip">… 15줄 생략 …</span><span class="add" data-line="42">| 원본 (trealworld의 뜻으로) | 출처 저장소, 출처 파일. &quot;원본&quot;은 이 저장소만 뜻한다. |</span><span class="add" data-line="43">| 캐시 | 설치한 사본 |</span><span class="skip">… 24줄 생략 …</span><span class="add" data-line="68">| R4 | MUST NOT | 플러그인의 항목은 `version`을 **절대** 가져**서는 안 된다**. | 마켓플레이스 매니페스트 |</span><span class="skip">… 1줄 생략 …</span><span class="add" data-line="70">| R6 | MUST | `LICENSE` 3개(저장소의 뿌리 1개, 플러그인의 폴더 2개)의 내용은 **반드시** 같아**야 한다**. | 저장소의 뿌리, 플러그인의 폴더 |</span></pre>
+    <p><b>"원본"이라는 말을 정리한 줄을 본다.</b> 브레인스토밍은 "원본"을 두 뜻으로 썼다: trealworld의 파일, 그리고 이 저장소. domain은 앞의 것을 "출처"로 부른다. "원본"은 이 저장소만 뜻한다. 한 개념에 한 용어를 쓰는 규칙(1단계의 ASD-STE100)의 적용이다. R6은 ②에서 나온다: 뿌리의 <code>LICENSE</code>는 설치한 사본에 없다. 그래서 플러그인마다 있어야 한다.</p>
+    <p class="bridge">무엇을 지킬지는 정했다. 어떻게 지킬지, 왜 그 방법인지는 ADR이 말한다.</p>
+  </div>
+
+  <div class="step" id="step4">
+    <h3>4단계 — 어떻게 만들고 왜 그렇게 정했는가</h3>
+    <p class="why">ADR 4개는 3단계의 문장을 지킬 방법을 정한다. 규칙마다 "출처"의 열이 있다. 사용자가 정한 것과 AI가 제안한 것을 구분한다. 규칙은 모두 31개다.</p>
+
+    <p class="file-role"><b>docs/adr/0001-repository-layout.md</b> (73줄) — 폴더의 구조. 1절의 ②에 대한 답이다.</p>
+    <pre class="diff" data-file="docs/adr/0001-repository-layout.md"><span class="add" data-line="21">```text</span><span class="add" data-line="22">.claude-plugin/marketplace.json</span><span class="add" data-line="23">plugins/</span><span class="add" data-line="24">  tstack/</span><span class="add" data-line="25">    .claude-plugin/plugin.json</span><span class="add" data-line="26">    README.md</span><span class="add" data-line="27">    GUIDE.md</span><span class="add" data-line="28">    LICENSE</span><span class="add" data-line="29">    agents/</span><span class="add" data-line="30">    skills/</span><span class="add" data-line="31">  explain-diff/</span><span class="add" data-line="32">    .claude-plugin/plugin.json</span><span class="add" data-line="33">    README.md</span><span class="add" data-line="34">    LICENSE</span><span class="add" data-line="35">    skills/explain-diff/</span><span class="add" data-line="36">    evals/</span><span class="add" data-line="37">docs/</span><span class="add" data-line="38">tests/</span><span class="add" data-line="39">scripts/</span><span class="add" data-line="40">.github/workflows/</span><span class="add" data-line="41">provenance.json</span><span class="add" data-line="42">README.md</span><span class="add" data-line="43">LICENSE</span><span class="add" data-line="44">CLAUDE.md</span><span class="skip">… 5줄 생략 …</span><span class="add" data-line="50">| 2 | 플러그인의 폴더가 아닌 것(`docs/`, `tests/`, `scripts/`, `.github/`, `provenance.json`)은 `plugins/`의 밖에 **반드시** 있어**야 한다**. | AI가 제안. |</span><span class="skip">… 1줄 생략 …</span><span class="add" data-line="52">| 4 | 가이드는 **반드시** `plugins/tstack/GUIDE.md`에 있어**야 한다**. | 사용자가 결정 (플러그인의 안으로 옮긴다, 2026-11-20). 파일의 이름은 AI가 제안. |</span></pre>
+    <p>규칙 2가 2절의 그림의 뜻이다. 설계 문서와 검사는 <code>plugins/</code>의 밖에 있다. 그래서 설치한 사본에 들어가지 않는다. 가이드와 eval은 반대로 안으로 들어왔다.</p>
+
+    <p class="file-role"><b>docs/adr/0002-move-and-provenance.md</b> (50줄) — 옮기는 방법. "옮기다가 내용이 바뀐다"를 막는다.</p>
+    <pre class="diff" data-file="docs/adr/0002-move-and-provenance.md"><span class="add" data-line="22">| 2 | 작업자는 파일을 **반드시** 출처 커밋에서 꺼내**야 한다**. 출처 저장소의 작업 트리에서 복사하지 않는다. | AI가 제안. |</span><span class="skip">… 2줄 생략 …</span><span class="add" data-line="25">| 5 | 바꾸지 않은 파일의 `changed`는 **반드시** `null`이어**야 한다**. | AI가 제안. |</span><span class="add" data-line="26">| 6 | 검사는 옮긴 파일의 git blob 해시를 **반드시** 파일의 내용에서 계산**해야 한다**. 검사는 출처 저장소를 읽지 않는다. | AI가 제안. |</span><span class="add" data-line="27">| 7 | 출처의 기록의 `changed`가 `null`이 아닌 항목은 **반드시** Spec 01의 바꾼 파일의 표의 6개와 같아**야 한다**. | 사용자가 결정 (결함 3개를 고친다)에서 나온다. 표는 AI가 제안. |</span><span class="skip">… 1줄 생략 …</span><span class="add" data-line="29">규칙 2의 이유: 출처 저장소의 작업 트리에는 추적하지 않는 사본(`.agents/skills/explain-diff/`)이 있다. 그 사본은 출처 커밋의 파일과 낱말 1개가 다르다 (확인: `diff -rq`).</span></pre>
+    <p><b>규칙 2의 이유가 사례다.</b> trealworld의 작업 트리에는 git이 추적하지 않는 explain-diff의 사본이 하나 더 있고, 낱말 1개가 다르다. "폴더에서 복사"하면 어느 것을 집을지 사람의 조심에 달린다. "커밋에서 꺼낸다"는 그 선택을 없앤다. 규칙 6이 있어서 CI는 trealworld가 없어도 78개를 대조한다. 규칙 7은 차이를 spec의 표의 6개로 묶는다. 일곱째 파일을 고치려면 spec을 먼저 고쳐야 한다.</p>
+
+    <p class="file-role"><b>docs/adr/0003-version-and-release.md</b> (61줄) — 버전과 릴리스. 1절의 ③에 대한 답이다.</p>
+    <pre class="diff" data-file="docs/adr/0003-version-and-release.md"><span class="add" data-line="26">| 2 | 버전의 유일한 자리는 플러그인 매니페스트다. 플러그인의 항목은 `version`을 **절대** 가져**서는 안 된다** (R4). | AI가 제안. |</span><span class="skip">… 1줄 생략 …</span><span class="add" data-line="28">| 4 | 버전의 검사는 플러그인마다 **반드시** 마지막 릴리스의 태그와 지금의 작업 트리를 비교**해야 한다**. 비교의 범위는 플러그인의 폴더다. | 사용자가 결정 (검사). 비교의 기준은 AI가 제안 (N5). |</span><span class="add" data-line="29">| 5 | 버전의 검사는 얕은 clone에서 **반드시** 실패**해야 한다**. | AI가 제안. |</span><span class="skip">… 5줄 생략 …</span><span class="add" data-line="35">규칙 5의 이유: 얕은 clone에는 태그가 없다. 검사는 &quot;태그가 없다&quot;(AC-5.3: 통과)와 &quot;태그를 받지 않았다&quot;를 구분하지 못한다. 구분하지 못하는 경우는 실패다. 그래서 CI는 전체의 역사와 태그를 받는다 (ADR-0004의 규칙 8).</span></pre>
+    <p><b>규칙 5가 3단계의 "넷째 상태"다.</b> 얕은 clone에는 태그가 없다. 검사는 "태그가 없다"(AC-5.3: 통과)와 "태그를 받지 않았다"를 구분하지 못한다. 구분하지 못하면 통과가 아니고 실패다. CI의 기본 checkout이 얕은 clone이라서 이 규칙이 없으면 버전의 검사는 CI에서 항상 초록이 된다.</p>
+
+    <p class="file-role"><b>docs/adr/0004-verification.md</b> (85줄) — 검증의 방법. 테스트의 이름, 격리, 세 단계.</p>
+    <pre class="diff" data-file="docs/adr/0004-verification.md"><span class="add" data-line="25">| 3 | 테스트의 함수의 이름은 **반드시** `test_&lt;ID의 표지&gt;_`로 시작**해야 한다**. ID의 표지는 `ac&lt;목표&gt;_&lt;번호&gt;`, `r&lt;번호&gt;`, `adr&lt;ADR의 번호&gt;_&lt;규칙의 번호&gt;`다. | AI가 제안. 사용자가 고른 미리보기에 이 모양이 있었다. |</span><span class="skip">… 1줄 생략 …</span><span class="add" data-line="27">| 5 | `claude`를 부르는 테스트는 **반드시** 격리된 설정 폴더에서 돌**아야 한다**. | AI가 제안. |</span><span class="add" data-line="28">| 6 | 검사는 사용자의 설정 폴더(`~/.claude`)를 **절대** 바꿔**서는 안 된다**. | AI가 제안. |</span><span class="add" data-line="29">| 7 | `claude`가 `PATH`에 없으면, `claude`를 부르는 테스트는 건너뛴다. 환경 변수 `CI`가 `true`이면, 그 테스트는 건너뛰지 않고 **반드시** 실패**해야 한다**. | AI가 제안. |</span><span class="skip">… 2줄 생략 …</span><span class="add" data-line="32">| 10 | GitHub에서 설치하는 테스트(AC-1.8)는 환경 변수 `TSTACK_REMOTE`가 `1`일 때만 돈다. CI는 `main`에 push한 뒤에 이 테스트를 **반드시** 돌**려야 한다**. | AI가 제안. |</span><span class="skip">… 28줄 생략 …</span><span class="add" data-line="61">| 단계 | 언제 | 무엇을 보는가 |</span><span class="add" data-line="62">|---|---|---|</span><span class="add" data-line="63">| 1 | 커밋의 전, CI | 파일과 매니페스트의 요구. `claude plugin validate --strict`. |</span><span class="add" data-line="64">| 2 | 커밋의 전, CI | 격리된 설정 폴더에서 작업 사본의 경로를 마켓플레이스로 등록하고 설치한다 (AC-1.10). |</span><span class="add" data-line="65">| 3 | push의 뒤 | 격리된 설정 폴더에서 GitHub의 마켓플레이스를 등록하고 설치한다 (AC-1.8). 설치한 사본의 파일을 본다. |</span></pre>
+    <p><b>규칙 7을 본다.</b> <code>claude</code>가 없으면 테스트를 건너뛴다. 그런데 건너뛴 테스트는 통과로 보인다. CI에서 그러면 AC-1.4, AC-1.5, AC-1.10을 아무도 검사하지 않는다. 그래서 <code>CI=true</code>이면 건너뛰지 않고 실패한다. 세 단계의 표는 1절의 "로컬 경로는 복사하지 않는다"를 구조로 옮긴 것이다. 2단계는 가짜에 가깝고 3단계가 진짜다.</p>
+    <p class="bridge">요구와 방법이 있다. 남은 것은 순서다.</p>
+  </div>
+
+  <div class="step" id="step5">
+    <h3>5단계 — 순서를 정한다: 먼저 그대로 옮기고, 그다음에 고친다</h3>
+    <p class="why">plan은 작업 13개다. "검증할 내용"은 ID만 가리킨다. 순서에 생각이 들어 있는 곳은 작업 3 → 4 → 7 → 8이다.</p>
+    <p class="file-role"><b>docs/plan/01-marketplace.md</b> (51줄) — plan. 작업 13개와 끝의 조건.</p>
+    <pre class="diff" data-file="docs/plan/01-marketplace.md"><span class="add" data-line="21">| 3 | 출처의 기록을 만든다. | AC-3.1, AC-3.3, AC-3.4. 기록의 `blob` 78개가 출처 커밋의 `git ls-tree -r`의 출력과 같다. 비교의 출력이 일지에 있다. |</span><span class="add" data-line="22">| 4 | 출처 파일 78개를 출처 커밋에서 꺼내서 옮긴다. 내용은 바꾸지 않는다. | AC-3.2가 78개 모두에서 통과한다. AC-2.7, AC-2.9, R7, R8. ADR-0001의 규칙 1 ~ 5에 테스트가 있다. ADR-0002의 규칙 1과 2의 증거가 일지에 있다. |</span><span class="skip">… 2줄 생략 …</span><span class="add" data-line="25">| 7 | 옮겨서 깨진 것을 고친다: 플러그인 `tstack`의 `README.md`와 가이드. | AC-2.1, AC-2.2, AC-2.8, AC-2.10 ~ AC-2.13. 고치기 전에 AC-2.12를 뺀 여섯 테스트가 실패한다. 실패의 글이 출처의 줄을 가리킨다. AC-2.12의 테스트는 결함을 넣으면 실패한다. |</span><span class="add" data-line="26">| 8 | 결함 3개를 고친다. | AC-4.1 ~ AC-4.4. 고치기 전에 네 테스트가 실패한다. AC-2.3. 출처의 기록의 바꾼 파일이 6개다 (ADR-0002의 규칙 7). AC-3.2가 나머지 72개에서 통과한다. |</span><span class="skip">… 4줄 생략 …</span><span class="add" data-line="31">| 13 | 공개하고 실제의 표면에서 확인한다. 저장소를 GitHub에 만들고 push한다. 릴리스의 태그 2개를 만든다. | AC-1.8. GitHub Actions의 실행이 성공으로 끝난다. 설치한 사본의 파일의 목록이 플러그인의 폴더의 `git ls-files`의 출력과 같다. ADR-0003의 규칙 6의 증거가 일지에 있다. 사용자가 자기 설정 폴더에 플러그인 2개를 설치한 뒤에, 그 세션의 스킬의 목록에 `tstack:t-mode`, `tstack:t-reflect`, `explain-diff:explain-diff`가 있다. |</span><span class="skip">… 14줄 생략 …</span><span class="add" data-line="46">## 끝의 조건</span><span class="add" data-line="47"> </span><span class="add" data-line="48">- 수용 기준 39개에 모두 통과하는 테스트가 있다.</span><span class="add" data-line="49">- 규칙 8개에 모두 통과하는 테스트가 있다.</span><span class="add" data-line="50">- GitHub의 `tobyilee/tstack`에서 플러그인 2개를 설치한 기록이 일지에 있다.</span><span class="add" data-line="51">- 일지에 작업마다 기록이 있다.</span></pre>
+    <p><b>작업 4의 "78개 모두에서 통과한다"와 작업 8의 "나머지 72개"를 함께 본다.</b> 작업 4는 아무것도 고치지 않고 옮긴다. 그 순간에는 78개가 모두 출처와 같다. 이것이 한 번 초록이 된 뒤에 작업 7과 8이 6개를 고친다. 그러면 "차이는 정확히 이 6개다"가 증명된다. 옮기면서 고치면 "78개가 같았던 순간"이 없다. 차이가 6개인지 7개인지 사람이 세어야 한다.</p>
+    <p>작업 7의 "AC-2.12를 뺀 여섯 테스트가 실패한다"도 본다. 출처의 글에는 이미 <code>claude --plugin-dir</code>가 있다. 그래서 AC-2.12의 테스트는 처음부터 초록이다. 처음부터 초록인 테스트는 아무것도 증명하지 않으므로 결함을 넣어서 빨강을 본다.</p>
+    <p class="bridge">문서는 끝났다. 이제 plan의 첫 작업을 한다.</p>
+  </div>
+
+  <div class="step" id="step6">
+    <h3>6단계 — 첫 작업: git 저장소와 빈 <code>tests/</code></h3>
+    <p class="why">작업 1은 이 변경에서 문서가 아닌 유일한 부분이다. 파일은 빈 파일 1개다. 그런데 "왜 이 파일인가"에 실험 2개가 걸려 있다.</p>
+    <p class="file-role"><b>tests/__init__.py</b> (0줄) — 빈 파일. 테스트는 아직 없다.</p>
+<pre class="diff" data-file="tests/__init__.py"><span class="skip">(빈 파일이다. 0줄)</span></pre>
+    <pre class="diff" data-file="docs/plan/01-marketplace.md"><span class="add" data-line="5">  - 수정 (2026-11-20): 작업 1을 끝냈다. AI가 이 줄을 더했다. 요구는 바꾸지 않았다.</span></pre>
+    <table>
+      <tr><th>실험</th><th>결과</th><th>뜻</th></tr>
+      <tr><td><code>tests/__init__.py</code>를 뺐다 (폴더는 남겼다)</td><td><code>unittest</code>가 통과한다. <code>Ran 0 tests</code></td><td>이 파일은 <code>unittest</code>가 요구하는 것이 아니다</td></tr>
+      <tr><td>이 파일이 없이 커밋하고 clone했다 (스크래치)</td><td>clone에 <code>tests/</code>가 없다. <code>ImportError</code></td><td>git은 빈 폴더를 추적하지 않는다. 이 파일은 <b>clone한 사람</b>을 위해 있다</td></tr>
+      <tr><td><code>.gitignore</code>를 뺐다</td><td><code>git status</code>가 같다</td><td>지금은 하는 일이 없다. 그래서 지웠다. 이 변경에 <code>.gitignore</code>가 없는 이유다</td></tr>
+    </table>
+    <p class="bridge">저장소가 생겼다. <code>trace --tests tests</code>는 테스트가 있는 ID가 47개 중 0개라고 말한다. 작업 2부터 이 수가 오른다.</p>
+  </div>
+</section>
+
+<section id="other">
+  <h2>5. 그 밖의 변경</h2>
+  <ul class="other">
+    <li><code>docs/journal/2026-11-20.md</code> (386줄) — 일지. 스텝 6개의 과정의 기록이다: 요청, 질문과 답, 실험의 표, AI의 실수, 버린 대안. 결론은 위의 문서에 있고 과정은 여기에 있다. 4절에서 인용하지 않았다.</li>
+    <li><code>docs/brainstorming/00-kickoff.md</code>의 나머지 — 읽은 사실의 표(F1 ~ F15, D1 ~ D11), 가설 6개와 그 상태(6.10), 6.9의 새 질문 8개, 6.11의 질문 15개의 답.</li>
+    <li><code>docs/spec/01-marketplace.md</code>의 나머지 — 목표 1의 매니페스트의 기준(AC-1.1 ~ AC-1.7, AC-1.9), 목표 2의 README와 LICENSE(AC-2.3 ~ AC-2.10), 목표 3의 나머지, 목표 4(결함 3개), 목표 6(README와 LICENSE), "가정", "받아들인 한계" 6개, "범위 밖", "출처와 다른 점", "근거"의 표.</li>
+    <li><code>docs/domain/01-marketplace.md</code>의 나머지 — 용어의 표의 나머지, "모델"의 표, R1 ~ R3, R5, R7, R8.</li>
+    <li>ADR 4개의 나머지 — "맥락", "결과", "버린 대안"의 표(대안 19개), ADR-0003의 "릴리스의 순서", ADR-0004의 "테스트가 없는 규칙"의 표.</li>
+    <li><code>docs/plan/01-marketplace.md</code>의 나머지 — 작업 1, 2, 5, 6, 9 ~ 12와 "기능 작업의 안쪽 순서".</li>
+  </ul>
+</section>
+
+<section id="review">
+  <h2>6. 리뷰 메모</h2>
+  <p>라벨: <span class="tag ok">확인</span>은 실행해서 봤다. <span class="tag read">읽음</span>은 읽기만 했다. <span class="tag guess">추정</span>은 확인하지 않았다.</p>
+  <ul>
+    <li><span class="tag ok">확인</span> <b>"테스트 0개로 통과"는 Python의 버전에 따라 다르다.</b> 입력: Python 3.12, 3.13, 3.14에서 <code>python3 -m unittest discover -s tests</code>. 결과: 끝의 코드 5 (<code>NO TESTS RAN</code>). 이 컴퓨터의 3.9.6에서는 0이다. ADR-0004는 Python의 버전을 정하지 않는다. 작업 2가 테스트를 넣으면 이 조건은 사라진다. 그 전에 CI를 붙이면 빨강이다.</li>
+    <li><span class="tag ok">확인</span> <b><code>trace</code>의 테스트의 폴더의 기본값은 <code>src/test</code>다.</b> 입력: 이 저장소에서 옵션이 없이 <code>tstack-check.py trace</code>. 결과: <code>미확정: trace. 테스트의 폴더가 없다: src/test</code> (끝의 코드 2). ADR-0004의 규칙 9와 작업 12는 <code>--tests tests</code>를 적지 않는다. CI가 문서대로 돌리면 "미확정"이 나온다.</li>
+    <li><span class="tag read">읽음</span> <b><code>trace</code>는 AC와 R만 센다.</b> ADR의 규칙 31개에 테스트가 있는지는 어떤 검사도 세지 않는다. plan의 "ADR-0004의 규칙 2, 3, 5, 6, 11에 테스트가 있다"는 사람이 본다. 테스트의 이름의 표지(<code>adr0004_3_</code>)는 정했지만 그것을 읽는 검사가 없다.</li>
+    <li><span class="tag read">읽음</span> <b>커밋이 없는 저장소에서 <code>journal</code>의 검사는 뜻이 약하다.</b> 일지가 추적되지 않는 파일이기만 하면 통과한다. 이 스텝의 기록이 있는지는 보지 않는다. 첫 커밋의 뒤에 뜻이 생긴다.</li>
+    <li><span class="tag guess">추정</span> <b>AC-2.13은 <code>--plugin-dir</code>가 있는 모든 줄에 경로를 요구한다.</b> 입력: 가이드에 "<code>--plugin-dir</code>는 설치하지 않고 그 자리에서 읽는다"처럼 경로가 없이 플래그만 말하는 문장. 결과: 그 줄이 AC-2.13을 어긴다. 테스트가 아직 없어서 확인하지 못했다. 의도한 엄격함인지 작업 7에서 정해야 한다.</li>
+    <li><span class="tag ok">확인</span> <b>principle 12개의 "사례" 줄이 trealworld의 일지의 스텝을 가리킨다.</b> 예: "일지 2026-11-16의 스텝 6". 공개한 뒤의 사용자에게는 그 일지가 없다. 링크가 아니고 글이라서 AC-2.1과 AC-2.2가 보지 않는다. AC-2.10은 가이드의 "이 프로젝트"만 본다. "옮겨서 깨지는 것"의 목록에 이것이 없다.</li>
+    <li><span class="tag read">읽음</span> <b>AC-2.2는 상대 링크만 본다.</b> 가이드의 <code>like-pstack.md</code>의 링크는 trealworld의 URL이 된다. 그 URL이 <code>main</code>을 가리키면 trealworld가 그 파일을 옮길 때 깨진다. 질문: 출처 커밋의 고정 URL(<code>…/blob/68fc5e2/…</code>)로 쓰는가.</li>
+    <li><span class="tag read">읽음</span> <b><code>CLAUDE.md</code>가 <code>tstack-check.py</code>를 경로가 없이 부른다.</b> 이 저장소에 그 스크립트가 들어오는 것은 작업 4다. 그 전에 이 저장소만 받은 사람은 규칙이 말하는 검사를 돌리지 못한다.</li>
+    <li><span class="tag read">읽음</span> <b>묶음의 승인이다.</b> AI의 제안 33개쯤(ADR의 규칙 25개, spec의 "누가 = AI"인 줄 8개)을 한 문장으로 승인받았다. 문서는 "하나씩 보지는 않았다"고 적는다. 작업마다 그 작업이 쓰는 규칙을 다시 읽는 것이 방어다.</li>
+  </ul>
+</section>
+
+<section id="quiz"
+  data-msg-pass="첫 시도에 {n} / {total}. 이 변경을 이해했다. 커밋하고 작업 2로 가도 된다."
+  data-msg-fail="첫 시도에 {n} / {total}. 틀린 문제의 링크를 다시 읽고 한 번 더 한다."
+  data-msg-retry="다시 풀기"
+  data-msg-key="정답과 해설">
+  <h2>7. 이해했는지 확인한다</h2>
+  <p class="quiz-intro">점수를 매기는 시험이 아니다. 읽은 것과 이해한 것의 차이를 보여 주는 장치다. 권하는 규칙: 다 맞히기 전에는 이 변경을 커밋하지 않는다.</p>
+  <ol class="quiz">
+    <li data-answer="c">
+      <p class="q-text">출처에서 가이드는 저장소의 뿌리에 있었다. 이 설계는 가이드를 <code>plugins/tstack/</code>의 안으로 옮긴다. 가장 직접적인 이유는?</p>
+      <div class="opts">
+        <button type="button" data-opt="a">뿌리에 Markdown이 많으면 <code>claude plugin validate --strict</code>가 실패한다.</button>
+        <button type="button" data-opt="b">마켓플레이스 매니페스트는 <code>plugins/</code>의 아래의 파일만 나열한다.</button>
+        <button type="button" data-opt="c">설치는 플러그인의 폴더만 복사한다. 밖에 있는 가이드는 설치한 사람이 받지 못한다.</button>
+        <button type="button" data-opt="d">가이드가 한국어라서 영어의 절이 있는 뿌리의 README와 떨어져 있어야 한다.</button>
+      </div>
+      <div class="explain" hidden>
+        <p>1절의 ②다. GitHub에서 설치한 사본은 플러그인의 폴더의 파일 34개만 가졌고 밖의 파일은 0개였다. 매니페스트는 파일을 나열하지 않는다. 플러그인의 이름과 폴더만 적는다. <code>validate</code>는 뿌리의 Markdown을 세지 않는다.</p>
+        <a href="#background">다시 읽기: 1절의 표</a>
+      </div>
+    </li>
+    <li data-answer="a">
+      <p class="q-text">tstack <code>0.2.0</code>을 릴리스한 뒤에 <code>plugins/tstack/</code>의 오타 하나를 고치고 push했다. <code>version</code>은 그대로다. 이미 설치한 사용자와 검사에 무슨 일이 생기는가?</p>
+      <div class="opts">
+        <button type="button" data-opt="a">사용자는 고친 것을 받지 못한다. 버전의 검사가 실패해서 그 상태를 알린다.</button>
+        <button type="button" data-opt="b">사용자는 다음 업데이트에서 받는다. 오타는 내용의 변경이 아니어서 검사도 통과한다.</button>
+        <button type="button" data-opt="c">사용자는 받지 못한다. 검사는 통과한다. 검사는 <code>plugin.json</code>이 바뀌었는지만 본다.</button>
+      </div>
+      <div class="explain" hidden>
+        <p>③과 AC-5.1이다. 고정된 버전의 글자가 같으면 사용자는 옛 사본을 계속 쓴다. 검사의 범위는 플러그인의 폴더 전체다. 오타 하나도 "바뀌었다"이고, 버전이 태그와 같으면 실패다. ADR-0003은 이것을 나쁜 점으로 적는다: 오타 하나에도 버전을 올려야 한다.</p>
+        <a href="#step3">다시 읽기: 3단계의 AC-5.1 ~ AC-5.3</a>
+      </div>
+    </li>
+    <li data-answer="b">
+      <p class="q-text">plan은 작업 4(78개를 내용 그대로 옮긴다)를 작업 7과 8(6개를 고친다)의 앞에 둔다. 처음부터 옮기면서 고치면 무엇을 잃는가?</p>
+      <div class="opts">
+        <button type="button" data-opt="a">git의 역사다. 그대로 옮긴 커밋이 있어야 <code>git blame</code>이 출처 저장소로 이어진다.</button>
+        <button type="button" data-opt="b">"78개가 모두 출처와 같았던 순간"이다. 그 순간이 없으면 차이가 정확히 6개라는 것을 검사가 보이지 못한다.</button>
+        <button type="button" data-opt="c">테스트의 수다. 그대로 옮기는 작업이 없으면 AC-3.1의 테스트를 쓸 자리가 없다.</button>
+      </div>
+      <div class="explain" hidden>
+        <p>작업 4의 끝에서 AC-3.2는 78개 모두에서 초록이다. 그 뒤에 6개를 고치고 그 6개에 이유를 적으면 "나머지 72개는 같다"가 남는다. 역사는 처음부터 옮기지 않기로 했다 (ADR-0002의 규칙 1). 그래서 a는 이 설계와 관계가 없다.</p>
+        <a href="#step5">다시 읽기: 5단계</a>
+      </div>
+    </li>
+    <li data-answer="c">
+      <p class="q-text">CI가 저장소를 얕은 clone으로 받았다. 릴리스의 태그는 원격에 있지만 clone에는 없다. 이 설계에서 버전의 검사는 어떻게 되어야 하는가?</p>
+      <div class="opts">
+        <button type="button" data-opt="a">통과한다. 태그가 없으면 통과한다고 AC-5.3이 정한다.</button>
+        <button type="button" data-opt="b">건너뛴다. 판단할 정보가 없으면 건너뛰는 것이 안전하다.</button>
+        <button type="button" data-opt="c">실패한다. "태그가 없다"와 "태그를 받지 않았다"를 구분하지 못하기 때문이다.</button>
+      </div>
+      <div class="explain" hidden>
+        <p>ADR-0003의 규칙 5다. a가 끌리는 답이다. AC-5.3은 "릴리스가 아직 없는 플러그인"을 위한 것이다. 얕은 clone에서 그 규칙을 그대로 쓰면 버전의 검사는 CI에서 항상 초록이 된다. 건너뛰는 것도 같다. 건너뛴 검사는 통과로 보인다 (ADR-0004의 규칙 7과 같은 생각이다).</p>
+        <a href="#step4">다시 읽기: 4단계의 ADR-0003</a>
+      </div>
+    </li>
+    <li data-answer="b">
+      <p class="q-text">플러그인의 글에 폴더의 밖을 읽는 스크립트가 하나 숨어 있다. 격리된 설정 폴더에서 <b>작업 사본의 경로</b>를 마켓플레이스로 등록하고 설치했다 (AC-1.10). 이 결함은 드러나는가?</p>
+      <div class="opts">
+        <button type="button" data-opt="a">드러난다. 격리된 설정 폴더에는 밖의 파일이 없다.</button>
+        <button type="button" data-opt="b">드러나지 않는다. 로컬 경로의 마켓플레이스는 복사하지 않고 그 자리에서 읽는다. 밖의 파일이 그대로 있다.</button>
+        <button type="button" data-opt="c">드러나지 않는다. <code>claude plugin install</code>은 스크립트를 실행하지 않는다. GitHub에서 설치해도 같다.</button>
+      </div>
+      <div class="explain" hidden>
+        <p>1절의 함정이다. 격리되는 것은 설정 폴더다. 플러그인의 폴더가 아니다. 로컬 경로에서는 <code>Read from: &lt;경로&gt;</code>가 나왔다. 사본이 없으므로 "폴더만 복사한다"가 일어나지 않는다. 그래서 AC-1.8(GitHub 설치)이 따로 있고, 그 전에는 AC-2.1과 AC-2.2가 글의 링크의 수준에서 막는다. 스크립트가 밖을 읽는 경우는 링크의 검사도 보지 못한다. push의 뒤의 3단계가 마지막 방어다.</p>
+        <a href="#step4">다시 읽기: 4단계의 "검사의 세 단계"</a>
+      </div>
+    </li>
+  </ol>
+  <p class="quiz-result" hidden aria-live="polite"></p>
+  <button type="button" class="quiz-retry" hidden></button>
+  <div class="answer-key"></div>
+</section>
+
+</main>
+<script>
+/* Quiz behavior — keep as is. Reads the markup in #quiz; no per-document changes needed. */
+(function(){
+  var quiz=document.getElementById('quiz'); if(!quiz) return;
+  var items=[].slice.call(quiz.querySelectorAll('ol.quiz>li'));
+  var result=quiz.querySelector('.quiz-result'), retry=quiz.querySelector('.quiz-retry');
+  var state=[]; // per question: undefined = unanswered, true/false = first try right/wrong
+  function fill(msg,n){return (msg||'{n} / {total}').replace('{n}',n).replace('{total}',items.length);}
+  function finish(){
+    if(state.filter(function(s){return s!==undefined;}).length<items.length) return;
+    var n=state.filter(Boolean).length, pass=n===items.length;
+    result.textContent=fill(quiz.dataset[pass?'msgPass':'msgFail'],n);
+    result.className='quiz-result '+(pass?'pass':'fail'); result.hidden=false;
+    retry.hidden=pass;
+  }
+  items.forEach(function(li,i){
+    var buttons=[].slice.call(li.querySelectorAll('.opts button'));
+    buttons.forEach(function(b){
+      b.addEventListener('click',function(){
+        var ok=b.dataset.opt===li.dataset.answer;
+        if(state[i]===undefined) state[i]=ok;   // only the first try counts
+        b.classList.add(ok?'right':'wrong'); b.disabled=true;
+        if(ok){ buttons.forEach(function(x){x.disabled=true;}); }
+        li.querySelector('.explain').hidden=false;
+        finish();
+      });
+    });
+  });
+  retry.textContent=quiz.dataset.msgRetry||'Retry';
+  retry.addEventListener('click',function(){
+    state=[];
+    quiz.querySelectorAll('.opts button').forEach(function(b){b.disabled=false;b.className='';});
+    quiz.querySelectorAll('.explain').forEach(function(e){e.hidden=true;});
+    result.hidden=true; retry.hidden=true;
+    quiz.scrollIntoView({behavior:'smooth'});
+  });
+  // Printed answer key (shown only in print, on its own page).
+  var key=quiz.querySelector('.answer-key'), h=document.createElement('h3'), ol=document.createElement('ol');
+  h.textContent=quiz.dataset.msgKey||'Answer key'; key.appendChild(h);
+  items.forEach(function(li){
+    var right=li.querySelector('.opts button[data-opt="'+li.dataset.answer+'"]');
+    var why=li.querySelector('.explain p'), row=document.createElement('li');
+    row.textContent=(right?right.textContent:'?')+(why?' — '+why.textContent:'');
+    ol.appendChild(row);
+  });
+  key.appendChild(ol);
+})();
+</script>
+</body>
+</html>

@@ -5,12 +5,21 @@
 ## 설치
 
 ```text
-/plugin install tstack --marketplace tobyilee/trealworld
+/plugin marketplace add tobyilee/tstack
+/plugin install tstack@tstack
 ```
 
-저장소를 받은 폴더에서 바로 써 보려면 `claude --plugin-dir ./tstack`으로 시작한다.
+사용법은 [`GUIDE.md`](GUIDE.md)에 있다.
 
-사용법은 저장소의 [`tstack-guide.md`](../tstack-guide.md)에 있다.
+## 로컬의 변경을 바로 적용하기
+
+저장소를 받은 폴더에서 플러그인의 파일을 고친 뒤에, 설치하지 않고 그 폴더를 바로 올린다. Claude Code가 폴더를 그 자리에서 읽는다. 고친 것이 다음 세션에 적용된다.
+
+```text
+claude --plugin-dir ./plugins/tstack
+```
+
+## 부품
 
 | 부품 | 위치 | 역할 |
 |---|---|---|

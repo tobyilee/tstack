@@ -266,7 +266,7 @@
       "from": "tstack-guide.md",
       "to": "plugins/tstack/GUIDE.md",
       "blob": "b2482c1fff8b969352b12dbba74af9c5bf70cf76",
-      "changed": null
+      "changed": "1절의 설치 명령과 `--plugin-dir`의 경로 (AC-2.8, AC-2.11 ~ AC-2.13). 11절의 파일의 지도. 상대 링크 8개 (AC-2.2). \"이 프로젝트\"의 7줄 (AC-2.10). `like-pstack.md`의 링크를 고정 URL로 (AC-2.14)."
     },
     {
       "from": "tstack/.claude-plugin/plugin.json",
@@ -278,7 +278,7 @@
       "from": "tstack/README.md",
       "to": "plugins/tstack/README.md",
       "blob": "a4e983339fd1f87d85420b67e46c264e3bf5ab0e",
-      "changed": null
+      "changed": "설치 명령을 이 마켓플레이스의 두 단계의 명령으로 바꿨다 (AC-2.8, AC-2.11). `--plugin-dir`의 경로를 고쳤다 (AC-2.12, AC-2.13). 가이드의 링크를 플러그인의 안으로 바꿨다 (AC-2.1)."
     },
     {
       "from": "tstack/agents/t-reviewer.md",

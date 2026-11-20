@@ -418,3 +418,81 @@ def license_problems(root):
         elif top_text is not None and (folder / "LICENSE").read_text(encoding="utf-8") != top_text:
             problems.append("R6: LICENSE의 내용이 저장소의 뿌리의 것과 다르다: %s/%s/LICENSE" % (PLUGINS_DIR, name))
     return sorted(problems)
+
+
+# ------------------------------------------ 플러그인의 글: AC-2.1, AC-2.2, AC-2.8, AC-2.10 ~ AC-2.14
+
+SOURCE_REPOSITORY = "https://github.com/tobyilee/trealworld"
+SOURCE_COMMIT = "68fc5e24b76724b37dc9cc7e974121ea347c08ed"
+INSTALL_COMMANDS = ("/plugin marketplace add tobyilee/tstack", "/plugin install tstack@tstack")
+PLUGIN_DIR_COMMAND = CLI_NAME + " --plugin-dir"
+INSTALL_DOCS = ("plugins/tstack/GUIDE.md", "plugins/tstack/README.md")
+MD_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+INLINE_CODE = re.compile(r"`[^`]*`")
+SOURCE_URL = re.compile(re.escape(SOURCE_REPOSITORY) + r"[^\s)>\"'`]*")
+
+
+def plugin_text_files(root):
+    """플러그인의 폴더의 글의 파일을 (저장소 기준의 경로, 플러그인의 폴더, 줄의 목록)으로 준다."""
+    root = Path(root)
+    found = []
+    for name in plugin_folders(root):
+        folder = root / PLUGINS_DIR / name
+        for path in sorted(p for p in folder.rglob("*") if p.is_file() and "__pycache__" not in p.parts):
+            try:
+                lines = path.read_text(encoding="utf-8").splitlines()
+            except UnicodeDecodeError:
+                continue
+            found.append((path.relative_to(root).as_posix(), folder, lines))
+    return found
+
+
+def _links(lines):
+    """Markdown의 줄에서 (줄의 번호, 링크의 경로)를 준다. 코드 블록과 글의 안의 코드는 보지 않는다."""
+    in_code = False
+    for number, line in enumerate(lines, 1):
+        if line.lstrip().startswith("```"):
+            in_code = not in_code
+            continue
+        if in_code:
+            continue
+        for match in MD_LINK.finditer(INLINE_CODE.sub("", line)):
+            yield number, match.group(1)
+
+
+def text_problems(root):
+    """플러그인의 글의 문제를 글로 준다. 글은 ID로 시작한다."""
+    root = Path(root)
+    names = plugin_folders(root)
+    path_of_plugin = re.compile(r"%s/(%s)(?![\w-])" % (PLUGINS_DIR, "|".join(re.escape(n) for n in names) or "x"))
+    problems = []
+    for rel, folder, lines in plugin_text_files(root):
+        where = lambda number: "%s:%d" % (rel, number)
+        if rel.endswith(".md"):
+            for number, target in _links(lines):
+                if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", target) or target.startswith("#"):
+                    continue
+                resolved = (root / rel).parent.joinpath(target.split("#")[0]).resolve()
+                home = folder.resolve()
+                if resolved != home and home not in resolved.parents:
+                    problems.append("AC-2.1: 상대 링크가 플러그인의 폴더의 밖을 가리킨다: %s (%s)" % (where(number), target))
+                elif not resolved.exists():
+                    problems.append("AC-2.2: 상대 링크가 없는 파일을 가리킨다: %s (%s)" % (where(number), target))
+        for number, line in enumerate(lines, 1):
+            if ("plugin install" in line or "marketplace add" in line) and "trealworld" in line:
+                problems.append("AC-2.8: 설치 명령의 줄이 글자 trealworld를 가진다: %s" % where(number))
+            if rel == INSTALL_DOCS[0] and "이 프로젝트" in line:
+                problems.append("AC-2.10: 가이드가 글자 `이 프로젝트`를 가진다: %s" % where(number))
+            if PLUGIN_DIR_COMMAND in line and not path_of_plugin.search(line):
+                problems.append("AC-2.13: `--plugin-dir`의 명령의 줄에 경로 plugins/<플러그인의 이름>이 없다: %s" % where(number))
+            for url in SOURCE_URL.findall(line):
+                if SOURCE_COMMIT not in url:
+                    problems.append("AC-2.14: 출처 저장소의 URL이 고정 URL이 아니다: %s (%s)" % (where(number), url.rstrip(".,")))
+        if rel in INSTALL_DOCS:
+            text = "\n".join(lines)
+            for command in INSTALL_COMMANDS:
+                if command not in text:
+                    problems.append("AC-2.11: 설치 명령이 없다: %s (%s)" % (rel, command))
+            if PLUGIN_DIR_COMMAND not in text:
+                problems.append("AC-2.12: `claude --plugin-dir`의 명령이 없다: %s" % rel)
+    return sorted(problems)

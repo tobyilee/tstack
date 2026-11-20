@@ -1,8 +1,8 @@
 # tstack 가이드
 
-- tstack은 이 프로젝트(trealworld)의 일지 57스텝과 커밋 24개에서 뽑은 개발 워크플로의 스킬 세트다.
-- 구조는 Lauren Tan의 pstack의 원리를 따른다. 근거는 [`like-pstack.md`](like-pstack.md)다.
-- 플러그인의 위치: [`tstack/`](tstack/). 기준: 2026-11-17.
+- tstack은 trealworld 프로젝트의 일지 57스텝과 커밋 24개에서 뽑은 개발 워크플로의 스킬 세트다.
+- 구조는 Lauren Tan의 pstack의 원리를 따른다. 근거는 trealworld의 [`like-pstack.md`](https://github.com/tobyilee/trealworld/blob/68fc5e24b76724b37dc9cc7e974121ea347c08ed/like-pstack.md)다.
+- 플러그인의 위치: 이 가이드가 있는 폴더 (저장소의 `plugins/tstack/`). 기준: 2026-11-17.
 
 ---
 
@@ -31,8 +31,8 @@ AI가 하는 일은 여섯이다.
 
 | 방법 | 명령 | 언제 쓰는가 |
 |---|---|---|
-| 한 번 써 보기 | `claude --plugin-dir ./tstack` | 이 저장소의 폴더에서 바로 시작한다. 설치하지 않는다. |
-| 설치 | `/plugin install tstack --marketplace tobyilee/trealworld` | 다른 프로젝트에서도 쓴다. 저장소에 push한 뒤에 된다. |
+| 설치 | `/plugin marketplace add tobyilee/tstack` 뒤에 `/plugin install tstack@tstack` | 마켓플레이스를 등록하고 플러그인을 설치한다. 모든 프로젝트에서 쓴다. |
+| 로컬의 변경을 바로 적용하기 | `claude --plugin-dir ./plugins/tstack` | 저장소를 받은 폴더에서 플러그인의 파일을 고친 뒤에 쓴다. 설치하지 않는다. Claude Code가 폴더를 그 자리에서 읽는다. |
 
 - 매니페스트 2개는 `claude plugin validate`를 통과했다 (확인).
 - 실제 세션에 플러그인을 올려서 스킬이 뜨는 것은 아직 보지 않았다 (미확정). 처음 쓸 때 `/tstack:t-mode`가 목록에 있는지 본다.
@@ -50,7 +50,7 @@ AI가 하는 일은 여섯이다.
 
 ## 2. 한 주기
 
-이 프로젝트에서 반복된 주기는 "쓴다 → 다시 읽는다 → 고친다"다. 문서에서도 코드에서도 같다.
+trealworld에서 반복된 주기는 "쓴다 → 다시 읽는다 → 고친다"다. 문서에서도 코드에서도 같다.
 
 ```mermaid
 flowchart TD
@@ -118,7 +118,7 @@ prompt에는 아래의 5가지만 넣는다. 절차와 스킬의 이름은 넣�
 
 ## 4. 보고를 읽는 법
 
-모든 스텝은 같은 모양의 보고로 끝난다 ([`report-template.md`](tstack/skills/t-mode/references/report-template.md)).
+모든 스텝은 같은 모양의 보고로 끝난다 ([`report-template.md`](skills/t-mode/references/report-template.md)).
 
 | 절 | 당신이 볼 것 |
 |---|---|
@@ -160,7 +160,7 @@ prompt에는 아래의 5가지만 넣는다. 절차와 스킬의 이름은 넣�
 | "**규칙을 검사로 옮긴다**. 테스트로 강제해." | 테스트나 스크립트를 더한다. | 스텝 44 |
 | "**원인을 고친다**. 다른 곳에도 있어?" | 넓게 보고 원인의 문장을 쓴다. | 스텝 52 |
 
-원칙의 본문은 [`tstack/skills/t-mode/principles/`](tstack/skills/t-mode/principles/)에 있다. 본문의 절은 여섯이다: 규칙, 왜, 방법, 멈춤, 쓴 흔적, 사례.
+원칙의 본문은 [`skills/t-mode/principles/`](skills/t-mode/principles/)에 있다. 본문의 절은 여섯이다: 규칙, 왜, 방법, 멈춤, 쓴 흔적, 사례.
 
 ---
 
@@ -208,7 +208,7 @@ python3 tstack/skills/t-mode/scripts/tstack-check.py keywords
 
 끝의 코드: `0`은 통과, `1`은 실패, `2`는 미확정이다.
 
-이 스크립트도 "실패를 본 검사"다. 이 프로젝트의 복사본에 결함 8가지를 넣었고 8가지를 모두 잡았다.
+이 스크립트도 "실패를 본 검사"다. trealworld의 복사본에 결함 8가지를 넣었고 8가지를 모두 잡았다.
 
 | 넣은 결함 | 잡은 검사 |
 |---|---|
@@ -225,7 +225,7 @@ python3 tstack/skills/t-mode/scripts/tstack-check.py keywords
 한계 (읽음):
 
 - `trace`는 테스트의 **이름**만 본다. 테스트가 그 요구를 실제로 검증하는지는 보지 않는다. 그것은 **대조**의 결함을 넣는 확인이 본다.
-- `trace`의 이름의 규칙(`ac1_1_`, `r4_`)은 이 프로젝트의 ADR-0004의 규칙이다. 다른 규칙을 쓰는 프로젝트에서는 스크립트를 고친다.
+- `trace`의 이름의 규칙(`ac1_1_`, `r4_`)은 trealworld의 ADR-0004의 규칙이다. 다른 규칙을 쓰는 프로젝트에서는 스크립트를 고친다.
 - `keywords`는 한국어의 키워드만 본다.
 - `journal`은 일지의 파일이 바뀌었는지만 본다. 내용이 그 스텝을 다루는지는 보지 않는다.
 
@@ -308,11 +308,11 @@ python3 tstack/skills/t-mode/scripts/tstack-check.py keywords
 
 | 다른 점 | 이유 |
 |---|---|
-| 스텝의 사이에서 멈춘다 | 이 프로젝트의 규칙이다. 속도의 기준이 사람의 이해다 (스텝 23). |
+| 스텝의 사이에서 멈춘다 | trealworld의 규칙이다. 속도의 기준이 사람의 이해다 (스텝 23). |
 | principle이 독립 스킬이 아니고 파일이다 | 스킬의 목록이 원칙으로 채워지지 않는다 (`like-pstack.md` 5.2). |
-| 일지가 감사 기록이다 | pstack은 TSV를 쓴다. 이 프로젝트는 이미 스텝마다 일지를 쓴다. 두 개를 두지 않았다. |
+| 일지가 감사 기록이다 | pstack은 TSV를 쓴다. trealworld는 이미 스텝마다 일지를 쓴다. 두 개를 두지 않았다. |
 | 회고의 입력이 대화의 기록이 아니고 일지다 | 일지에 교정과 관찰이 이미 있다. |
-| 문서의 언어가 한국어다 | 이 프로젝트의 규칙이다. |
+| 문서의 언어가 한국어다 | trealworld의 규칙이다. |
 | 설명 문서는 `explain-diff` 스킬을 이름으로 부른다 | 내용을 복사하지 않는다. 스킬이 없으면 그 단계는 `skip`이다. |
 
 ---
@@ -335,22 +335,22 @@ python3 tstack/skills/t-mode/scripts/tstack-check.py keywords
 ## 11. 파일의 지도
 
 ```text
-.claude-plugin/marketplace.json        이 저장소를 플러그인의 출처로 만든다
-tstack/
-  .claude-plugin/plugin.json           플러그인의 이름과 버전
-  README.md
-  agents/t-reviewer.md                 독립 리뷰어
-  skills/
-    t-mode/
-      SKILL.md                         라우터: 색인만
-      playbooks/                       10개: kickoff, design-docs, plan-task, review, fix,
+(플러그인의 폴더. 저장소에서는 plugins/tstack/)
+.claude-plugin/plugin.json             플러그인의 이름과 버전
+README.md
+GUIDE.md                               이 문서
+LICENSE
+agents/t-reviewer.md                   독립 리뷰어
+skills/
+  t-mode/
+    SKILL.md                           라우터: 색인만
+    playbooks/                         10개: kickoff, design-docs, plan-task, review, fix,
                                        conformance, decisions, status, wrap-up, figure-it-out
-      principles/                      12개
-      references/                      journal-format, doc-style, doc-templates,
+    principles/                        12개
+    references/                        journal-format, doc-style, doc-templates,
                                        review-memo, report-template, project-rules
-      scripts/tstack-check.py          trace, keywords, journal, self
-    t-reflect/SKILL.md                 회고
-tstack-guide.md                        이 문서
+    scripts/tstack-check.py            trace, keywords, journal, self
+  t-reflect/SKILL.md                   회고
 ```
 
-읽는 순서: [`SKILL.md`](tstack/skills/t-mode/SKILL.md) → [`plan-task.md`](tstack/skills/t-mode/playbooks/plan-task.md) → [`see-it-fail.md`](tstack/skills/t-mode/principles/see-it-fail.md) → [`report-template.md`](tstack/skills/t-mode/references/report-template.md).
+읽는 순서: [`SKILL.md`](skills/t-mode/SKILL.md) → [`plan-task.md`](skills/t-mode/playbooks/plan-task.md) → [`see-it-fail.md`](skills/t-mode/principles/see-it-fail.md) → [`report-template.md`](skills/t-mode/references/report-template.md).

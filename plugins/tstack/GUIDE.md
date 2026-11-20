@@ -34,8 +34,8 @@ AI가 하는 일은 여섯이다.
 | 설치 | `/plugin marketplace add tobyilee/tstack` 뒤에 `/plugin install tstack@tstack` | 마켓플레이스를 등록하고 플러그인을 설치한다. 모든 프로젝트에서 쓴다. |
 | 로컬의 변경을 바로 적용하기 | `claude --plugin-dir ./plugins/tstack` | 저장소를 받은 폴더에서 플러그인의 파일을 고친 뒤에 쓴다. 설치하지 않는다. Claude Code가 폴더를 그 자리에서 읽는다. |
 
-- 매니페스트 2개는 `claude plugin validate`를 통과했다 (확인).
-- 실제 세션에 플러그인을 올려서 스킬이 뜨는 것은 아직 보지 않았다 (미확정). 처음 쓸 때 `/tstack:t-mode`가 목록에 있는지 본다.
+- 설치한 뒤에 `/`의 메뉴에 `/tstack:t-mode`와 `/tstack:t-reflect`가 있는지 본다.
+- tstack 저장소의 CI가 push마다 `claude plugin validate --strict`를 돌린다. `main`의 push의 뒤에는 GitHub에서 플러그인을 설치해 본다.
 - 검사 스크립트는 Python 3만 있으면 돈다. 다른 패키지는 필요하지 않다.
 
 스킬의 이름:
@@ -196,15 +196,20 @@ AI는 묻기 전에 분류한다.
 | `journal` | 바뀐 파일이 있는데 오늘의 일지가 바뀌지 않았는가. | 마무리 |
 | `self` | 라우터의 색인과 파일이 맞는가. playbook이 `**보고:**`로 끝나는가. | tstack을 고친 뒤 |
 
-직접 돌리는 방법:
+직접 돌리는 방법. 아래의 명령은 tstack 저장소를 받은 폴더의 뿌리에서 돈다. 그 저장소의 `docs/`를 검사한다.
 
 ```bash
-python3 tstack/skills/t-mode/scripts/tstack-check.py trace
+python3 plugins/tstack/skills/t-mode/scripts/tstack-check.py trace --tests tests
 ```
 
 ```bash
-python3 tstack/skills/t-mode/scripts/tstack-check.py keywords
+python3 plugins/tstack/skills/t-mode/scripts/tstack-check.py keywords
 ```
+
+다른 프로젝트에서는 그 프로젝트의 뿌리에서 같은 스크립트를 전체 경로로 돌린다. 세션의 안에서는 `t-mode`가 이 스크립트를 자기의 폴더에서 찾아서 돌린다.
+
+- `trace`는 테스트의 폴더를 `src/test`에서 찾는다. 다른 폴더면 `--tests <폴더>`를 준다. 문서만 보려면 `--no-tests`를 준다.
+- 문서의 폴더가 `docs`가 아니면 `--docs <폴더>`를 준다.
 
 끝의 코드: `0`은 통과, `1`은 실패, `2`는 미확정이다.
 

@@ -63,6 +63,32 @@ class PluginText(unittest.TestCase):
     def test_ac2_14_source_repository_urls_are_pinned(self):
         self.check("AC-2.14:")
 
+    def test_ac2_15_script_paths_in_python_commands_exist(self):
+        self.check("AC-2.15:")
+
+    def test_ac2_15_checker_finds_a_command_with_a_missing_script(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = good_tree(tmp)
+            write(root, "plugins/tstack/skills/t-mode/scripts/check.py", "")
+            write(root, "plugins/tstack/notes.md", (
+                "```bash\n"
+                "python3 plugins/tstack/skills/t-mode/scripts/check.py trace\n"
+                "python3 tstack/skills/t-mode/scripts/check.py trace\n"
+                "    python3 skills/t-mode/scripts/check.py self\n"
+                "```\n"
+                "글의 안의 `python3 nowhere.py`는 명령의 줄이 아니다.\n"
+                "python3 -m unittest discover -s tests\n"
+            ))
+            found = support.text_problems(root)
+        self.assertEqual(
+            [
+                "AC-2.15: `python3`의 명령의 줄의 스크립트가 저장소의 뿌리에서 없다: plugins/tstack/notes.md:3 (tstack/skills/t-mode/scripts/check.py)",
+                "AC-2.15: `python3`의 명령의 줄의 스크립트가 저장소의 뿌리에서 없다: plugins/tstack/notes.md:4 (skills/t-mode/scripts/check.py)",
+            ],
+            found,
+            "AC-2.15: 코드 블록의 안의 줄도 본다. 옵션(-m)으로 시작하는 줄은 스크립트의 경로가 없다. 보지 않는다",
+        )
+
     def test_ac2_2_checker_accepts_a_good_tree(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual([], support.text_problems(good_tree(tmp)), "AC-2.2: 맞는 글에는 문제가 없다")

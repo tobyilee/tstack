@@ -485,6 +485,10 @@ def text_problems(root):
                 problems.append("AC-2.10: 가이드가 글자 `이 프로젝트`를 가진다: %s" % where(number))
             if PLUGIN_DIR_COMMAND in line and not path_of_plugin.search(line):
                 problems.append("AC-2.13: `--plugin-dir`의 명령의 줄에 경로 plugins/<플러그인의 이름>이 없다: %s" % where(number))
+            words = line.split()
+            if rel.endswith(".md") and len(words) >= 2 and words[0] == "python3" and not words[1].startswith("-"):
+                if not (root / words[1]).is_file():
+                    problems.append("AC-2.15: `python3`의 명령의 줄의 스크립트가 저장소의 뿌리에서 없다: %s (%s)" % (where(number), words[1]))
             for url in SOURCE_URL.findall(line):
                 if SOURCE_COMMIT not in url:
                     problems.append("AC-2.14: 출처 저장소의 URL이 고정 URL이 아니다: %s (%s)" % (where(number), url.rstrip(".,")))

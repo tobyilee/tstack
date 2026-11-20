@@ -266,13 +266,13 @@
       "from": "tstack-guide.md",
       "to": "plugins/tstack/GUIDE.md",
       "blob": "b2482c1fff8b969352b12dbba74af9c5bf70cf76",
-      "changed": "1절의 설치 명령과 `--plugin-dir`의 경로 (AC-2.8, AC-2.11 ~ AC-2.13). 11절의 파일의 지도. 상대 링크 8개 (AC-2.2). \"이 프로젝트\"의 7줄 (AC-2.10). `like-pstack.md`의 링크를 고정 URL로 (AC-2.14)."
+      "changed": "1절의 설치 명령과 `--plugin-dir`의 경로 (AC-2.8, AC-2.11 ~ AC-2.13). 11절의 파일의 지도. 상대 링크 8개 (AC-2.2). \"이 프로젝트\"의 7줄 (AC-2.10). `like-pstack.md`의 링크를 고정 URL로 (AC-2.14). 0.2.1: 7절의 검사 스크립트의 명령 2줄의 경로 (AC-2.15). 1절의 지금은 틀린 문장 2개."
     },
     {
       "from": "tstack/.claude-plugin/plugin.json",
       "to": "plugins/tstack/.claude-plugin/plugin.json",
       "blob": "5735c9d3d18c1371a841e130d27c46e21b0df122",
-      "changed": "version을 0.2.0으로 올렸다 (ADR-0003). license를 더했다 (AC-2.6)."
+      "changed": "version을 0.2.0으로 올렸다 (ADR-0003). license를 더했다 (AC-2.6). 0.2.1로 올렸다 (가이드의 수정)."
     },
     {
       "from": "tstack/README.md",

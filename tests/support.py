@@ -420,7 +420,7 @@ def license_problems(root):
     return sorted(problems)
 
 
-# ------------------------------------------ 플러그인의 글: AC-2.1, AC-2.2, AC-2.8, AC-2.10 ~ AC-2.14
+# ------------------------------------------ 플러그인의 글: AC-2.1, AC-2.2, AC-2.8, AC-2.10 ~ AC-2.16
 
 SOURCE_REPOSITORY = "https://github.com/tobyilee/trealworld"
 SOURCE_COMMIT = "68fc5e24b76724b37dc9cc7e974121ea347c08ed"
@@ -429,7 +429,34 @@ PLUGIN_DIR_COMMAND = CLI_NAME + " --plugin-dir"
 INSTALL_DOCS = ("plugins/tstack/GUIDE.md", "plugins/tstack/README.md")
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 INLINE_CODE = re.compile(r"`[^`]*`")
-SOURCE_URL = re.compile(re.escape(SOURCE_REPOSITORY) + r"[^\s)>\"'`]*")
+# 출처 저장소의 URL: 호스트의 뒤에 tobyilee/trealworld가 온다. 스킴, `git@`, `www.`은 가리지 않는다 (Spec 01의 "읽는 법").
+SOURCE_URL = re.compile(
+    r"(?:[a-z][a-z0-9+.-]*://)?(?:[\w.-]+@)?(?:www\.)?(?:github\.com|raw\.githubusercontent\.com)[/:]tobyilee/trealworld"
+    r"(?![\w-])[^\s)>\"'`]*"
+)
+SLASH_COMMAND = "/plugin "
+
+
+def is_pinned(url):
+    """고정 URL인가: `https://github.com/tobyilee/trealworld/`로 시작하고 출처 커밋의 전체 해시를 가진다."""
+    return url.startswith(SOURCE_REPOSITORY + "/") and SOURCE_COMMIT in url
+
+
+def crowded_code_blocks(lines):
+    """슬래시 명령의 줄이 2개 이상인 코드 블록을 (블록의 첫 줄의 번호, 줄의 수)로 준다. AC-2.16, AC-6.7."""
+    found, start, count = [], None, 0
+    for number, line in enumerate(lines, 1):
+        text = line.lstrip()
+        if text.startswith("```"):
+            if start is None:
+                start, count = number, 0
+            else:
+                if count >= 2:
+                    found.append((start, count))
+                start = None
+        elif start is not None and text.startswith(SLASH_COMMAND):
+            count += 1
+    return found
 
 
 def plugin_text_files(root):
@@ -478,6 +505,8 @@ def text_problems(root):
                     problems.append("AC-2.1: 상대 링크가 플러그인의 폴더의 밖을 가리킨다: %s (%s)" % (where(number), target))
                 elif not resolved.exists():
                     problems.append("AC-2.2: 상대 링크가 없는 파일을 가리킨다: %s (%s)" % (where(number), target))
+            for start, count in crowded_code_blocks(lines):
+                problems.append("AC-2.16: 코드 블록 하나에 슬래시 명령의 줄이 %d개다: %s" % (count, where(start)))
         for number, line in enumerate(lines, 1):
             if ("plugin install" in line or "marketplace add" in line) and "trealworld" in line:
                 problems.append("AC-2.8: 설치 명령의 줄이 글자 trealworld를 가진다: %s" % where(number))
@@ -490,7 +519,7 @@ def text_problems(root):
                 if not (root / words[1]).is_file():
                     problems.append("AC-2.15: `python3`의 명령의 줄의 스크립트가 저장소의 뿌리에서 없다: %s (%s)" % (where(number), words[1]))
             for url in SOURCE_URL.findall(line):
-                if SOURCE_COMMIT not in url:
+                if not is_pinned(url):
                     problems.append("AC-2.14: 출처 저장소의 URL이 고정 URL이 아니다: %s (%s)" % (where(number), url.rstrip(".,")))
         if rel in INSTALL_DOCS:
             text = "\n".join(lines)
@@ -585,7 +614,7 @@ def tests_without_id_message(root):
     return found
 
 
-# ------------------------------------------------------- 뿌리의 README: AC-6.3 ~ AC-6.6
+# ------------------------------------------------------- 뿌리의 README: AC-6.3 ~ AC-6.7
 
 ENGLISH_HEADING = "## English"
 ROOT_INSTALL_COMMANDS = INSTALL_COMMANDS + ("/plugin install explain-diff@tstack",)
@@ -609,8 +638,11 @@ def readme_problems(root):
     path = Path(root) / "README.md"
     if not path.is_file():
         return ["AC-6.3: 저장소의 뿌리에 README.md가 없다"]
-    english, korean = split_readme(path.read_text(encoding="utf-8"))
+    text = path.read_text(encoding="utf-8")
+    english, korean = split_readme(text)
     problems = []
+    for start, count in crowded_code_blocks(text.splitlines()):
+        problems.append("AC-6.7: 뿌리의 README.md의 코드 블록 하나에 슬래시 명령의 줄이 %d개다: README.md:%d" % (count, start))
     if english is None:
         problems.append("AC-6.3: 뿌리의 README.md에 머리가 `%s`인 절이 없다" % ENGLISH_HEADING)
     for command in ROOT_INSTALL_COMMANDS:

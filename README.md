@@ -11,11 +11,17 @@ This repository is a Claude Code plugin marketplace. It has 2 plugins.
 | `tstack` | A development workflow: write the documents first (spec, domain, ADR, plan), write the tests first, and write a journal entry for each step. | Korean |
 | `explain-diff` | Turns a diff, commit, branch, or pull request into one self-contained HTML learning document with a recall quiz. | English |
 
-Install. Run these commands in a Claude Code session:
+Install. Run these commands in a Claude Code session, one at a time:
 
 ```text
 /plugin marketplace add tobyilee/tstack
+```
+
+```text
 /plugin install tstack@tstack
+```
+
+```text
 /plugin install explain-diff@tstack
 ```
 
@@ -36,11 +42,17 @@ tstack의 리뷰의 단계는 explain-diff가 있으면 설명 문서를 만든�
 
 ## 설치
 
-Claude Code의 세션에서 아래의 명령을 돌린다. 첫 줄은 마켓플레이스를 등록한다. 둘째와 셋째 줄은 플러그인을 설치한다. 하나만 설치해도 된다.
+Claude Code의 세션에서 아래의 명령을 하나씩 돌린다. 한 번에 한 줄을 붙인다. 첫 명령은 마켓플레이스를 등록한다. 둘째와 셋째 명령은 플러그인을 설치한다. 하나만 설치해도 된다.
 
 ```text
 /plugin marketplace add tobyilee/tstack
+```
+
+```text
 /plugin install tstack@tstack
+```
+
+```text
 /plugin install explain-diff@tstack
 ```
 
@@ -99,7 +111,7 @@ Claude Code의 CLI가 `PATH`에 있으면 검사가 `claude plugin validate --st
 
 ## 출처
 
-두 플러그인은 [trealworld](https://github.com/tobyilee/trealworld/tree/68fc5e24b76724b37dc9cc7e974121ea347c08ed) 프로젝트에서 나왔다. 그 저장소의 커밋 `68fc5e2`의 파일 78개를 옮겼고, 18개를 고쳤다. `provenance.json`이 파일마다 출처의 경로와 고친 이유를 적는다.
+두 플러그인은 [trealworld](https://github.com/tobyilee/trealworld/tree/68fc5e24b76724b37dc9cc7e974121ea347c08ed) 프로젝트에서 나왔다. 그 저장소의 커밋 `68fc5e2`의 파일 78개를 옮겼고, 19개를 고쳤다. `provenance.json`이 파일마다 출처의 경로와 고친 이유를 적는다.
 
 tstack의 구조는 Lauren Tan의 pstack의 원리를 따른다.
 

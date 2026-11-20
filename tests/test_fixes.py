@@ -1,4 +1,4 @@
-"""알려진 결함 4개의 수정을 검사한다. Spec 01의 AC-2.3, AC-4.1 ~ AC-4.5. ADR-0002의 규칙 7.
+"""알려진 결함의 수정을 검사한다. Spec 01의 AC-2.3, AC-4.1 ~ AC-4.6. ADR-0002의 규칙 7.
 
 스킬의 글의 요구는 글에 그 문장이 있는지를 본다. 모델의 행동은 보지 않는다 (Spec 01의 "받아들인 한계" 1번).
 """
@@ -19,9 +19,11 @@ REFLECT = TSTACK / "skills" / "t-reflect" / "SKILL.md"
 RULES = TSTACK / "skills" / "t-mode" / "references" / "project-rules.md"
 PRINCIPLES = TSTACK / "skills" / "t-mode" / "principles"
 EXPLAIN = ROOT / "plugins" / "explain-diff" / "skills" / "explain-diff" / "SKILL.md"
+TEMPLATE = ROOT / "plugins" / "explain-diff" / "skills" / "explain-diff" / "assets" / "template.html"
 PINNED = support.SOURCE_REPOSITORY + "/blob/" + support.SOURCE_COMMIT + "/"
-CHANGED_SIX = [
+CHANGED_SEVEN = [
     "plugins/explain-diff/skills/explain-diff/SKILL.md",
+    "plugins/explain-diff/skills/explain-diff/assets/template.html",
     "plugins/tstack/.claude-plugin/plugin.json",
     "plugins/tstack/GUIDE.md",
     "plugins/tstack/README.md",
@@ -60,6 +62,11 @@ class ExplainDiff(unittest.TestCase):
         )
 
 
+    def test_ac4_6_template_does_not_name_the_seminar_deck(self):
+        lines = [n for n, line in enumerate(TEMPLATE.read_text(encoding="utf-8").splitlines(), 1) if "ai-seminar" in line]
+        self.assertEqual([], lines, "AC-4.6: explain-diff의 문서의 틀이 글자 ai-seminar를 가진다 (줄: %s)" % lines)
+
+
 class ProjectRules(unittest.TestCase):
     def test_ac4_4_rules_block_passes_the_keywords_check(self):
         block = support.first_code_block(RULES.read_text(encoding="utf-8"))
@@ -91,14 +98,14 @@ class PrincipleCases(unittest.TestCase):
 
 
 class ChangedFiles(unittest.TestCase):
-    def test_adr0002_7_changed_entries_are_the_eighteen_files_of_the_spec(self):
-        expected = sorted(CHANGED_SIX + ["plugins/tstack/skills/t-mode/principles/" + p.name for p in PRINCIPLES.glob("*.md")])
-        self.assertEqual(18, len(expected), "ADR-0002 규칙 7: Spec 01의 바꾼 파일의 표는 18개다")
+    def test_adr0002_7_changed_entries_are_the_nineteen_files_of_the_spec(self):
+        expected = sorted(CHANGED_SEVEN + ["plugins/tstack/skills/t-mode/principles/" + p.name for p in PRINCIPLES.glob("*.md")])
+        self.assertEqual(19, len(expected), "ADR-0002 규칙 7: Spec 01의 바꾼 파일의 표는 19개다")
         record = provenance.load(ROOT)
         changed = sorted(entry["to"] for entry in record["files"] if entry["changed"] is not None)
         self.assertEqual(
             expected, changed,
-            "ADR-0002 규칙 7: 출처의 기록의 바꾼 파일이 Spec 01의 표의 18개와 같아야 한다 (지금 %d개)" % len(changed),
+            "ADR-0002 규칙 7: 출처의 기록의 바꾼 파일이 Spec 01의 표의 19개와 같아야 한다 (지금 %d개)" % len(changed),
         )
 
 

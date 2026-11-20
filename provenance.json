@@ -14,7 +14,7 @@
       "from": ".claude/skills/explain-diff/assets/template.html",
       "to": "plugins/explain-diff/skills/explain-diff/assets/template.html",
       "blob": "aa2637ba02f2a34f27a55da4331bb90c25953ced",
-      "changed": null
+      "changed": "주석 3줄에서 발표 자료의 이름(ai-seminar-2026-11 deck)을 뺐다 (AC-4.6). CSS는 바꾸지 않았다."
     },
     {
       "from": ".claude/skills/explain-diff/evals/rename-guard-refactor/case.yaml",
@@ -272,13 +272,13 @@
       "from": "tstack/.claude-plugin/plugin.json",
       "to": "plugins/tstack/.claude-plugin/plugin.json",
       "blob": "5735c9d3d18c1371a841e130d27c46e21b0df122",
-      "changed": "version을 0.2.0으로 올렸다 (ADR-0003). license를 더했다 (AC-2.6). 0.2.1로 올렸다 (가이드의 수정)."
+      "changed": "version을 0.2.0으로 올렸다 (ADR-0003). license를 더했다 (AC-2.6). 0.2.1로 올렸다 (가이드의 수정). 0.2.2로 올렸다 (README의 설치 명령의 코드 블록, AC-2.16)."
     },
     {
       "from": "tstack/README.md",
       "to": "plugins/tstack/README.md",
       "blob": "a4e983339fd1f87d85420b67e46c264e3bf5ab0e",
-      "changed": "설치 명령을 이 마켓플레이스의 두 단계의 명령으로 바꿨다 (AC-2.8, AC-2.11). `--plugin-dir`의 경로를 고쳤다 (AC-2.12, AC-2.13). 가이드의 링크를 플러그인의 안으로 바꿨다 (AC-2.1)."
+      "changed": "설치 명령을 이 마켓플레이스의 두 단계의 명령으로 바꿨다 (AC-2.8, AC-2.11). `--plugin-dir`의 경로를 고쳤다 (AC-2.12, AC-2.13). 가이드의 링크를 플러그인의 안으로 바꿨다 (AC-2.1). 설치 명령의 코드 블록을 명령마다 나눴다 (AC-2.16)."
     },
     {
       "from": "tstack/agents/t-reviewer.md",

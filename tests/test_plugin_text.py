@@ -1,4 +1,4 @@
-"""플러그인의 글을 검사한다. Spec 01의 AC-2.1, AC-2.2, AC-2.8, AC-2.10 ~ AC-2.14.
+"""플러그인의 글을 검사한다. Spec 01의 AC-2.1, AC-2.2, AC-2.8, AC-2.10 ~ AC-2.16.
 
 설치는 플러그인의 폴더만 복사한다. 그래서 글이 폴더의 밖이나 출처 저장소의 옛 자리를 가리키면 안 된다.
 `support.text_problems`가 문제의 글을 준다. 글은 ID로 시작하고 파일과 줄의 번호를 가진다.
@@ -65,6 +65,55 @@ class PluginText(unittest.TestCase):
 
     def test_ac2_15_script_paths_in_python_commands_exist(self):
         self.check("AC-2.15:")
+
+    def test_ac2_16_code_blocks_have_at_most_one_slash_command(self):
+        self.check("AC-2.16:")
+
+    def test_ac2_16_checker_finds_two_slash_commands_in_one_code_block(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = good_tree(tmp)
+            write(root, "plugins/tstack/notes.md", (
+                "```text\n%s\n%s\n```\n"                       # 1 ~ 4번 줄: 슬래시 명령 2줄이 한 블록에 있다
+                "```text\n%s\n```\n"                            # 5 ~ 7번 줄: 블록 하나에 명령 하나다
+                "```text\n%s\n```\n"
+                "%s\n%s\n"                                       # 블록의 밖의 줄은 세지 않는다
+                "```bash\ncl" "aude plugin marketplace update tstack\ncl" "aude plugin update tstack@tstack\n```\n"
+                "  ```text\n  /plugin install a@b\n  /plugin install c@d\n  /plugin install e@f\n  ```\n"
+            ) % (ADD, INSTALL, ADD, INSTALL, ADD, INSTALL))
+            found = support.text_problems(root)
+        self.assertEqual(
+            [
+                "AC-2.16: 코드 블록 하나에 슬래시 명령의 줄이 2개다: plugins/tstack/notes.md:1",
+                "AC-2.16: 코드 블록 하나에 슬래시 명령의 줄이 3개다: plugins/tstack/notes.md:17",
+            ],
+            found,
+            "AC-2.16: 셸의 명령의 블록과 블록의 밖의 줄은 세지 않는다. 들여 쓴 블록은 센다",
+        )
+
+    def test_ac2_14_checker_finds_other_forms_of_the_source_repository_url(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = good_tree(tmp)
+            write(root, "plugins/tstack/notes.md", (
+                "git@github.com:tobyilee/trealworld.git\n"
+                "http://github.com/tobyilee/trealworld/blob/%s/a.md\n"
+                "https://www.github.com/tobyilee/trealworld\n"
+                "https://raw.githubusercontent.com/tobyilee/trealworld/%s/a.md\n"
+                "ssh://git@github.com/tobyilee/trealworld.git\n"
+                "https://github.com/tobyilee/trealworld/blob/%s/a.md\n"
+                "글의 안의 이름 tobyilee/trealworld와 https://github.com/tobyilee/tstack은 출처 저장소의 URL이 아니다.\n"
+            ) % (COMMIT, COMMIT, COMMIT))
+            found = support.text_problems(root)
+        self.assertEqual(
+            [
+                "AC-2.14: 출처 저장소의 URL이 고정 URL이 아니다: plugins/tstack/notes.md:1 (git@github.com:tobyilee/trealworld.git)",
+                "AC-2.14: 출처 저장소의 URL이 고정 URL이 아니다: plugins/tstack/notes.md:2 (http://github.com/tobyilee/trealworld/blob/%s/a.md)" % COMMIT,
+                "AC-2.14: 출처 저장소의 URL이 고정 URL이 아니다: plugins/tstack/notes.md:3 (https://www.github.com/tobyilee/trealworld)",
+                "AC-2.14: 출처 저장소의 URL이 고정 URL이 아니다: plugins/tstack/notes.md:4 (https://raw.githubusercontent.com/tobyilee/trealworld/%s/a.md)" % COMMIT,
+                "AC-2.14: 출처 저장소의 URL이 고정 URL이 아니다: plugins/tstack/notes.md:5 (ssh://git@github.com/tobyilee/trealworld.git)",
+            ],
+            found,
+            "AC-2.14: 고정 URL은 https://github.com/tobyilee/trealworld/로 시작하고 출처 커밋의 해시를 가진다. 6번 줄만 고정 URL이다",
+        )
 
     def test_ac2_15_checker_finds_a_command_with_a_missing_script(self):
         with tempfile.TemporaryDirectory() as tmp:

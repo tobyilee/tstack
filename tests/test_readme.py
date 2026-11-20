@@ -1,4 +1,4 @@
-"""저장소의 뿌리의 README를 검사한다. Spec 01의 AC-6.3 ~ AC-6.6.
+"""저장소의 뿌리의 README를 검사한다. Spec 01의 AC-6.3 ~ AC-6.7.
 
 README는 영어의 짧은 절과 한국어의 본문을 가진다. 모르는 사람이 뿌리에서 설치하는 방법을 찾는다.
 """
@@ -40,6 +40,20 @@ class RootReadme(unittest.TestCase):
 
     def test_ac6_6_korean_body_gives_the_plugin_dir_command(self):
         self.check("AC-6.6:")
+
+    def test_ac6_7_readme_code_blocks_have_at_most_one_slash_command(self):
+        self.check("AC-6.7:")
+
+    def test_ac6_7_checker_finds_two_slash_commands_in_one_code_block(self):
+        one_each = "".join("```text\n%s\n```\n\n" % line for line in COMMANDS.splitlines())
+        good = "# tstack\n\n## English\n\n" + one_each + "## 설치\n\n" + one_each + "## 로컬\n\n```text\n" + LOCAL + "```\n"
+        self.assertEqual([], problems_of(good), "AC-6.7: 명령마다 코드 블록 하나를 쓴 README에는 문제가 없다")
+        together = "# tstack\n\n## English\n\n" + one_each + "## 설치\n\n```text\n" + COMMANDS + "```\n\n" + LOCAL
+        self.assertEqual(
+            ["AC-6.7: 뿌리의 README.md의 코드 블록 하나에 슬래시 명령의 줄이 3개다: README.md:19"],
+            problems_of(together),
+            "AC-6.7: 슬래시 명령 3줄이 한 블록에 있으면 그 블록의 첫 줄을 가리킨다",
+        )
 
     def test_ac6_3_checker_accepts_a_good_readme_and_finds_a_missing_section(self):
         good = "# tstack\n\n## English\n\n" + COMMANDS + "\n## 설치\n\n" + COMMANDS + "\n## 로컬\n\n" + LOCAL

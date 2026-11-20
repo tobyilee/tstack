@@ -4,8 +4,13 @@
 
 ## 설치
 
+Claude Code의 세션에서 아래의 명령을 하나씩 돌린다. 한 번에 한 줄을 붙인다.
+
 ```text
 /plugin marketplace add tobyilee/tstack
+```
+
+```text
 /plugin install tstack@tstack
 ```
 

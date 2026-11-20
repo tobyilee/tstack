@@ -1,6 +1,6 @@
 {
   "name": "explain-diff",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Turn a diff, commit, branch, or pull request into a self-contained HTML learning document: background first, the core intuition, a literate diff in logical order, and a recall quiz.",
   "author": { "name": "Toby Lee" },
   "license": "MIT",

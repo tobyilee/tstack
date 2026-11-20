@@ -15,8 +15,13 @@ The skill writes the document in the language of your prompt.
 
 ## Install
 
+Run these commands in a Claude Code session, one at a time. Paste one line each time.
+
 ```text
 /plugin marketplace add tobyilee/tstack
+```
+
+```text
 /plugin install explain-diff@tstack
 ```
 

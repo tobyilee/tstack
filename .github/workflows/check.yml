@@ -11,11 +11,17 @@ permissions:
 jobs:
   check:
     name: check (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.9", "3.x"]
+        # setup-python은 Python 3.9를 Ubuntu 24.04까지만 준다. ubuntu-latest(26.04)에는 없다.
+        include:
+          - python-version: "3.9"
+            os: ubuntu-24.04
+          - python-version: "3.x"
+            os: ubuntu-latest
     steps:
       # 버전의 검사는 얕은 clone에서 실패한다. 역사와 태그를 모두 받는다.
       - uses: actions/checkout@v7

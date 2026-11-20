@@ -579,3 +579,41 @@ def tests_without_id_message(root):
             if not any(pattern.search(text) for text in _strings(node)):
                 found.append((rel, node.name, wanted))
     return found
+
+
+# ------------------------------------------------------- 뿌리의 README: AC-6.3 ~ AC-6.6
+
+ENGLISH_HEADING = "## English"
+ROOT_INSTALL_COMMANDS = INSTALL_COMMANDS + ("/plugin install explain-diff@tstack",)
+ROOT_LOCAL_COMMAND = PLUGIN_DIR_COMMAND + " ./plugins/tstack"
+
+
+def split_readme(text):
+    """README를 (영어의 절, 한국어의 본문)으로 나눈다. 영어의 절이 없으면 (None, 전체)다."""
+    english, korean, inside, seen = [], [], False, False
+    for line in text.splitlines():
+        if line.strip() == ENGLISH_HEADING:
+            inside, seen = True, True
+            continue
+        if inside and line.startswith("## "):
+            inside = False
+        (english if inside else korean).append(line)
+    return ("\n".join(english) if seen else None), "\n".join(korean)
+
+
+def readme_problems(root):
+    path = Path(root) / "README.md"
+    if not path.is_file():
+        return ["AC-6.3: 저장소의 뿌리에 README.md가 없다"]
+    english, korean = split_readme(path.read_text(encoding="utf-8"))
+    problems = []
+    if english is None:
+        problems.append("AC-6.3: 뿌리의 README.md에 머리가 `%s`인 절이 없다" % ENGLISH_HEADING)
+    for command in ROOT_INSTALL_COMMANDS:
+        if english is not None and command not in english:
+            problems.append("AC-6.4: `%s`의 절에 설치 명령이 없다: %s" % (ENGLISH_HEADING, command))
+        if command not in korean:
+            problems.append("AC-6.5: 한국어의 본문에 설치 명령이 없다: %s" % command)
+    if ROOT_LOCAL_COMMAND not in korean:
+        problems.append("AC-6.6: 한국어의 본문에 명령이 없다: %s" % ROOT_LOCAL_COMMAND)
+    return sorted(problems)

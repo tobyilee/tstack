@@ -617,3 +617,45 @@ def readme_problems(root):
     if ROOT_LOCAL_COMMAND not in korean:
         problems.append("AC-6.6: 한국어의 본문에 명령이 없다: %s" % ROOT_LOCAL_COMMAND)
     return sorted(problems)
+
+
+# ------------------------------------------------------ CI: ADR-0004 규칙 8, 9, 10, 14
+
+WORKFLOW = ".github/workflows/check.yml"
+
+
+def remote_enabled(env):
+    """GitHub에서 설치하는 테스트를 돌리는가. ADR-0004 규칙 10."""
+    return env.get("TSTACK_REMOTE") == "1"
+
+
+def workflow_problems(root):
+    """CI의 workflow의 문제를 글로 준다. YAML을 글자로 본다 (표준 라이브러리에 YAML의 모듈이 없다)."""
+    path = Path(root) / WORKFLOW
+    if not path.is_file():
+        return ["ADR-0004 규칙 8: CI의 workflow가 없다: %s" % WORKFLOW]
+    text = path.read_text(encoding="utf-8")
+    lines = [line.strip() for line in text.splitlines() if not line.strip().startswith("#")]
+    problems = []
+    for trigger in ("push", "pull_request"):
+        if trigger + ":" not in lines:
+            problems.append("ADR-0004 규칙 8: %s에서 돌지 않는다" % trigger)
+    checkouts = sum(1 for line in lines if "actions/checkout@" in line)
+    if checkouts == 0 or lines.count("fetch-depth: 0") != checkouts:
+        problems.append("ADR-0004 규칙 8: 역사와 태그를 모두 받지 않는다 (fetch-depth: 0이 checkout마다 있어야 한다)")
+    if not any("unittest discover -s tests" in line and "-p " not in line for line in lines):
+        problems.append("ADR-0004 규칙 8: 검사를 모두 돌리지 않는다 (unittest discover -s tests)")
+    if not any("tstack-check.py trace --tests tests" in line for line in lines):
+        problems.append("ADR-0004 규칙 9: `trace --tests tests`를 돌리지 않는다")
+    if not any("tstack-check.py keywords" in line for line in lines):
+        problems.append("ADR-0004 규칙 9: `keywords`를 돌리지 않는다")
+    if not any(re.match(r"^TSTACK_REMOTE:\s*[\"']?1[\"']?$", line) for line in lines):
+        problems.append("ADR-0004 규칙 10: 환경 변수 TSTACK_REMOTE를 1로 주지 않는다")
+    for condition in ("github.event_name == 'push'", "github.ref == 'refs/heads/main'"):
+        if not any(line.startswith("if:") and condition in line for line in lines):
+            problems.append("ADR-0004 규칙 10: `main`의 push의 조건이 없다: %s" % condition)
+    matrix = " ".join(line for line in lines if line.startswith("python-version:") and "[" in line)
+    for version in ("3.9", "3.x"):
+        if '"%s"' % version not in matrix:
+            problems.append("ADR-0004 규칙 14: Python의 버전 %s가 없다" % version)
+    return sorted(problems)

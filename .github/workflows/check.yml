@@ -1,0 +1,66 @@
+# 이 저장소의 검사. docs/adr/0004-verification.md의 규칙 8, 9, 10, 14.
+name: check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: check (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.x"]
+    steps:
+      # 버전의 검사는 얕은 clone에서 실패한다. 역사와 태그를 모두 받는다.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - name: Install the Claude Code CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+      - name: Tests
+        run: python -m unittest discover -s tests -v
+      - name: Version check
+        run: python scripts/version_check.py
+      - name: Trace
+        run: python plugins/tstack/skills/t-mode/scripts/tstack-check.py trace --tests tests
+      - name: Keywords
+        run: python plugins/tstack/skills/t-mode/scripts/tstack-check.py keywords
+
+  # GitHub에 있는 커밋을 설치한다. main에 push한 뒤에만 뜻이 있다.
+  remote-install:
+    name: install from GitHub
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - name: Install the Claude Code CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+      - name: Install both plugins from GitHub
+        env:
+          TSTACK_REMOTE: "1"
+        run: python -m unittest discover -s tests -p test_remote.py -v

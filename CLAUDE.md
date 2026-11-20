@@ -22,4 +22,4 @@
   - 문장을 짧게 쓴다. 한 문장에 요구는 하나다.
   - 한 개념에 한 용어를 쓴다. 용어는 domain 문서의 표를 따른다.
   - 범위가 흐린 말을 쓰지 않는다. 숫자에는 단위를 적는다.
-- `tstack-check.py keywords`가 키워드의 규칙을 검사한다. 문서를 쓰거나 고친 뒤에 돌린다.
+- `python3 plugins/tstack/skills/t-mode/scripts/tstack-check.py keywords`가 키워드의 규칙을 검사한다. 문서를 쓰거나 고친 뒤에 돌린다.

@@ -11,6 +11,9 @@ import sysconfig
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS = ROOT / "scripts"
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))  # 테스트가 scripts/의 모듈을 가져온다 (ADR-0004 규칙 12)
 CODE_DIRS = ("tests", "scripts")
 CLI_HELPER = "tests/claude_cli.py"
 CLI_NAME = "cl" + "aude"          # 이 파일이 규칙 5의 검사에 걸리지 않게 나눠서 쓴다
@@ -211,3 +214,92 @@ def adr_rules_without_tests(root):
         if (adr, rule) not in exempt and not any(name.startswith(token) for name in names):
             missing.append("ADR-%s 규칙 %d" % (adr, rule))
     return missing
+
+
+
+# --------------------------------------------------------------- ADR-0001
+
+PLUGINS_DIR = "plugins"
+NOT_PLUGIN_THINGS = ("docs", "tests", "scripts", ".github", "provenance.json")
+EVALS_HOME = "plugins/explain-diff/evals"
+GUIDE = "plugins/tstack/GUIDE.md"
+OLD_GUIDE_NAME = "tstack-guide.md"
+SKIP_DIRS = {".git", "__pycache__"}
+
+
+def _walk(root):
+    """저장소의 파일과 폴더를 준다. `.git`과 `__pycache__`의 안은 보지 않는다."""
+    pending = [Path(root)]
+    while pending:
+        folder = pending.pop()
+        for child in sorted(folder.iterdir()):
+            if child.name in SKIP_DIRS:
+                continue
+            yield child
+            if child.is_dir() and not child.is_symlink():
+                pending.append(child)
+
+
+def layout_problems(root, plugins=("tstack", "explain-diff")):
+    """ADR-0001의 규칙 1 ~ 5를 어긴 곳을 글로 준다. 글은 `ADR-0001 규칙 N:`으로 시작한다."""
+    root = Path(root)
+    rel = lambda path: path.relative_to(root).as_posix()
+    everything = list(_walk(root))
+    problems = []
+
+    for name in plugins:
+        if not (root / PLUGINS_DIR / name).is_dir():
+            problems.append("ADR-0001 규칙 1: 플러그인의 폴더가 없다: %s/%s" % (PLUGINS_DIR, name))
+    for path in everything:
+        if path.name == "plugin.json" and path.parent.name == ".claude-plugin":
+            parts = path.relative_to(root).parts
+            if not (len(parts) == 4 and parts[0] == PLUGINS_DIR):
+                problems.append("ADR-0001 규칙 1: 플러그인 매니페스트가 plugins/<이름>/의 밖에 있다: %s" % rel(path))
+
+    plugins_dir = root / PLUGINS_DIR
+    if plugins_dir.is_dir():
+        candidates = [plugins_dir] + [d for d in sorted(plugins_dir.iterdir()) if d.is_dir()]
+        for folder in candidates:
+            for thing in NOT_PLUGIN_THINGS:
+                if (folder / thing).exists():
+                    problems.append("ADR-0001 규칙 2: 플러그인의 폴더가 아닌 것이 plugins/의 안에 있다: %s" % rel(folder / thing))
+
+    if not (root / EVALS_HOME).is_dir():
+        problems.append("ADR-0001 규칙 3: eval 사례의 폴더가 없다: %s" % EVALS_HOME)
+    for path in everything:
+        if path.is_dir() and path.name == "evals" and rel(path).startswith(PLUGINS_DIR + "/") and rel(path) != EVALS_HOME:
+            problems.append("ADR-0001 규칙 3: evals/가 다른 자리에 있다: %s" % rel(path))
+
+    if not (root / GUIDE).is_file():
+        problems.append("ADR-0001 규칙 4: 가이드가 없다: %s" % GUIDE)
+    for path in everything:
+        if path.is_file() and path.name == OLD_GUIDE_NAME:
+            problems.append("ADR-0001 규칙 4: 가이드가 옛 이름으로 있다: %s" % rel(path))
+
+    for name in ("agents", "skills"):
+        if (root / name).exists():
+            problems.append("ADR-0001 규칙 5: 저장소의 뿌리에 부품의 폴더가 있다: %s" % name)
+    return sorted(problems, key=lambda text: (text.split(":")[0], text))
+
+
+# ----------------------------------------------------------- AC-2.9, R7, R8
+
+def eval_cases(root):
+    """eval 사례의 이름을 준다: `plugins/explain-diff/evals/`의 바로 아래의 폴더."""
+    home = Path(root) / EVALS_HOME
+    if not home.is_dir():
+        return []
+    return sorted(d.name for d in home.iterdir() if d.is_dir() and d.name not in SKIP_DIRS)
+
+
+def eval_case_problems(root):
+    """R7과 R8을 어긴 eval 사례를 글로 준다."""
+    home = Path(root) / EVALS_HOME
+    problems = []
+    for name in eval_cases(root):
+        if not (home / name / "prompt.md").is_file():
+            problems.append("R7: eval 사례에 prompt.md가 없다: %s" % name)
+        graders = home / name / "graders"
+        if not (graders.is_dir() and any(f.suffix == ".md" for f in graders.iterdir() if f.is_file())):
+            problems.append("R8: eval 사례의 graders/에 .md 파일이 없다: %s" % name)
+    return problems

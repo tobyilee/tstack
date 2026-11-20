@@ -1,0 +1,99 @@
+diff --git a/payments/client.py b/payments/client.py
+--- a/payments/client.py
++++ b/payments/client.py
+@@ -1,18 +1,22 @@
+ import time
++import random
+ import requests
+ 
++from payments.retry import RetryPolicy, should_retry
++
+ 
+ class PaymentsClient:
+-    def __init__(self, base_url: str, retries: int = 3):
++    def __init__(self, base_url: str, policy: RetryPolicy | None = None):
+         self.base_url = base_url
+-        self.retries = retries
++        self.policy = policy or RetryPolicy()
+         self.session = requests.Session()
+ 
+     def charge(self, payload: dict, idempotency_key: str) -> dict:
+-        for attempt in range(self.retries):
++        headers = {"Idempotency-Key": idempotency_key}
++        for attempt in range(self.policy.max_attempts):
+             try:
+-                resp = self.session.post(f"{self.base_url}/charges", json=payload, timeout=5)
++                resp = self.session.post(f"{self.base_url}/charges", json=payload,
++                                         headers=headers, timeout=5)
+                 resp.raise_for_status()
+                 return resp.json()
+-            except requests.RequestException:
+-                if attempt == self.retries - 1:
++            except requests.RequestException as exc:
++                if attempt == self.policy.max_attempts - 1 or not should_retry(exc):
+                     raise
+-                time.sleep(1)
++                time.sleep(self.policy.delay(attempt, retry_after=_retry_after(exc)))
++
++
++def _retry_after(exc: requests.RequestException) -> float | None:
++    resp = getattr(exc, "response", None)
++    if resp is not None and "Retry-After" in resp.headers:
++        return float(resp.headers["Retry-After"])
++    return None
+diff --git a/payments/retry.py b/payments/retry.py
+new file mode 100644
+--- /dev/null
++++ b/payments/retry.py
+@@ -0,0 +1,32 @@
++import random
++from dataclasses import dataclass
++
++import requests
++
++RETRYABLE_STATUS = {429, 502, 503, 504}
++
++
++@dataclass(frozen=True)
++class RetryPolicy:
++    max_attempts: int = 5
++    base: float = 0.2      # seconds
++    cap: float = 8.0       # seconds
++
++    def delay(self, attempt: int, retry_after: float | None = None) -> float:
++        """Full-jitter exponential backoff (AWS style).
++
++        attempt 0 -> uniform(0, base), attempt 1 -> uniform(0, 2*base), ...
++        never above cap. Server Retry-After wins when present.
++        """
++        if retry_after is not None:
++            return min(retry_after, self.cap)
++        ceiling = min(self.cap, self.base * (2 ** attempt))
++        return random.uniform(0, ceiling)
++
++
++def should_retry(exc: requests.RequestException) -> bool:
++    if isinstance(exc, (requests.ConnectionError, requests.Timeout)):
++        return True
++    resp = getattr(exc, "response", None)
++    return resp is not None and resp.status_code in RETRYABLE_STATUS
+diff --git a/tests/test_retry.py b/tests/test_retry.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_retry.py
+@@ -0,0 +1,14 @@
++from payments.retry import RetryPolicy
++
++
++def test_delay_never_exceeds_cap():
++    p = RetryPolicy(base=1, cap=3)
++    for attempt in range(10):
++        assert 0 <= p.delay(attempt) <= 3
++
++
++def test_retry_after_wins():
++    assert RetryPolicy().delay(0, retry_after=2.5) == 2.5
++
++
++def test_retry_after_capped():
++    assert RetryPolicy(cap=1).delay(0, retry_after=30) == 1

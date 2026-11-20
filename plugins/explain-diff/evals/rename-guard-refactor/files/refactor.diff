@@ -1,0 +1,50 @@
+diff --git a/src/users/profile_service.js b/src/users/profile_service.js
+--- a/src/users/profile_service.js
++++ b/src/users/profile_service.js
+@@ -1,22 +1,25 @@
+-const { getUser } = require('./repo');
++const { findUserById } = require('./repo');
+ 
+-async function displayName(id) {
+-  const u = await getUser(id);
+-  return u.nickname || `${u.firstName} ${u.lastName}`;
++function formatName(user) {
++  if (!user) return 'Unknown user';
++  return user.nickname || `${user.firstName} ${user.lastName}`.trim();
+ }
+ 
+-async function greeting(id) {
+-  const u = await getUser(id);
+-  return `Hello, ${u.nickname || `${u.firstName} ${u.lastName}`}!`;
++async function displayName(id) {
++  return formatName(await findUserById(id));
++}
++
++async function greeting(id) {
++  return `Hello, ${await displayName(id)}!`;
+ }
+ 
+-module.exports = { displayName, greeting };
++module.exports = { displayName, greeting, formatName };
+diff --git a/src/users/repo.js b/src/users/repo.js
+--- a/src/users/repo.js
++++ b/src/users/repo.js
+@@ -3,7 +3,7 @@ const db = require('../db');
+ 
+-async function getUser(id) {
++async function findUserById(id) {
+   return db.users.findOne({ id });
+ }
+ 
+-module.exports = { getUser };
++module.exports = { findUserById };
+diff --git a/src/admin/report.js b/src/admin/report.js
+--- a/src/admin/report.js
++++ b/src/admin/report.js
+@@ -1,4 +1,4 @@
+-const { getUser } = require('../users/repo');
++const { findUserById } = require('../users/repo');
+@@ -12,3 +12,3 @@ async function ownerLine(doc) {
+-  const owner = await getUser(doc.ownerId);
++  const owner = await findUserById(doc.ownerId);
+   return `${doc.title} — ${owner.email}`;

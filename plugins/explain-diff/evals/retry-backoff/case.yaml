@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: retry-backoff
+expected_outcome: |
+  An English HTML learning document that explains exponential backoff, jitter, Retry-After and idempotency keys before code,
+  offers a widget (e.g. retry timeline) that uses the real full-jitter formula with base 0.2 and cap 8, and walks through
+  retry.py before client.py's use of it, also covering the tests and the Idempotency-Key header.
+context:
+  scaffold_script: place-files.sh

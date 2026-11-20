@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: zen-garden-isometric
+expected_outcome: |
+  A single Korean HTML learning document. Background on grid vs screen coordinates and draw order comes before any code,
+  a plain one-sentence intuition precedes the code, an interactive widget lets the reader drag an object and watch grid,
+  screen and depth values change using the real gridToScreen/depthKey math, and the code walkthrough is ordered
+  projection -> diamond tiles -> depth sort -> mouse picking, covering every hunk including model.ts.
+context:
+  scaffold_script: place-files.sh

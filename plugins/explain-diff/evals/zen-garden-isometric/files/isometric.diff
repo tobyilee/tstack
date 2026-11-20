@@ -1,0 +1,123 @@
+diff --git a/src/garden/projection.ts b/src/garden/projection.ts
+new file mode 100644
+--- /dev/null
++++ b/src/garden/projection.ts
+@@ -0,0 +1,27 @@
++// Isometric (2:1 dimetric) projection helpers.
++export const TILE_W = 64;
++export const TILE_H = 32;
++
++export interface GridPos { gx: number; gy: number }
++export interface ScreenPos { sx: number; sy: number }
++
++/** Grid cell -> screen pixel (top corner of the diamond). */
++export function gridToScreen({ gx, gy }: GridPos, origin: ScreenPos): ScreenPos {
++  return {
++    sx: origin.sx + (gx - gy) * (TILE_W / 2),
++    sy: origin.sy + (gx + gy) * (TILE_H / 2),
++  };
++}
++
++/** Screen pixel -> fractional grid cell (inverse of gridToScreen). */
++export function screenToGrid({ sx, sy }: ScreenPos, origin: ScreenPos): GridPos {
++  const x = (sx - origin.sx) / (TILE_W / 2);
++  const y = (sy - origin.sy) / (TILE_H / 2);
++  return { gx: (x + y) / 2, gy: (y - x) / 2 };
++}
++
++/** Larger depth = closer to the viewer = drawn later. */
++export function depthKey(p: GridPos, z = 0): number {
++  return (p.gx + p.gy) * 100 + z;
++}
+diff --git a/src/garden/renderer.ts b/src/garden/renderer.ts
+--- a/src/garden/renderer.ts
++++ b/src/garden/renderer.ts
+@@ -1,9 +1,12 @@
+ import { Garden, GardenObject } from './model';
++import { gridToScreen, depthKey, TILE_W, TILE_H, ScreenPos } from './projection';
+ 
+-const CELL = 48;
+-
+ export class Renderer {
+-  constructor(private ctx: CanvasRenderingContext2D) {}
++  private origin: ScreenPos;
++  constructor(private ctx: CanvasRenderingContext2D) {
++    this.origin = { sx: ctx.canvas.width / 2, sy: 40 };
++  }
+ 
+   draw(garden: Garden) {
+     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+@@ -14,30 +17,45 @@ export class Renderer {
+   private drawSand(garden: Garden) {
+     for (let gy = 0; gy < garden.rows; gy++) {
+       for (let gx = 0; gx < garden.cols; gx++) {
+-        const x = gx * CELL;
+-        const y = gy * CELL;
+-        this.ctx.fillStyle = garden.raked[gy][gx] ? '#d8cfb4' : '#e8e0c8';
+-        this.ctx.fillRect(x, y, CELL, CELL);
++        const { sx, sy } = gridToScreen({ gx, gy }, this.origin);
++        this.ctx.fillStyle = garden.raked[gy][gx] ? '#d8cfb4' : '#e8e0c8';
++        this.ctx.beginPath();
++        this.ctx.moveTo(sx, sy);
++        this.ctx.lineTo(sx + TILE_W / 2, sy + TILE_H / 2);
++        this.ctx.lineTo(sx, sy + TILE_H);
++        this.ctx.lineTo(sx - TILE_W / 2, sy + TILE_H / 2);
++        this.ctx.closePath();
++        this.ctx.fill();
+       }
+     }
+   }
+ 
+   private drawObjects(garden: Garden) {
+-    for (const obj of garden.objects) {
+-      const x = obj.gx * CELL + CELL / 2;
+-      const y = obj.gy * CELL + CELL / 2;
+-      this.drawSprite(obj, x, y);
++    const sorted = [...garden.objects].sort(
++      (a, b) => depthKey(a, a.z) - depthKey(b, b.z),
++    );
++    for (const obj of sorted) {
++      const { sx, sy } = gridToScreen(obj, this.origin);
++      // anchor sprite's feet at the diamond centre
++      this.drawSprite(obj, sx, sy + TILE_H / 2 - obj.height);
+     }
+   }
+ 
+-  private drawSprite(obj: GardenObject, cx: number, cy: number) {
+-    this.ctx.drawImage(obj.sprite, cx - obj.width / 2, cy - obj.height / 2);
++  private drawSprite(obj: GardenObject, cx: number, top: number) {
++    this.ctx.drawImage(obj.sprite, cx - obj.width / 2, top);
+   }
+ }
+diff --git a/src/garden/input.ts b/src/garden/input.ts
+--- a/src/garden/input.ts
++++ b/src/garden/input.ts
+@@ -1,14 +1,17 @@
+ import { Garden } from './model';
+-
+-const CELL = 48;
++import { screenToGrid } from './projection';
+ 
+ export function attachInput(canvas: HTMLCanvasElement, garden: Garden, onChange: () => void) {
++  const origin = { sx: canvas.width / 2, sy: 40 };
+   let dragging: string | null = null;
+ 
+   canvas.addEventListener('pointerdown', (e) => {
+-    const gx = Math.floor(e.offsetX / CELL);
+-    const gy = Math.floor(e.offsetY / CELL);
++    const g = screenToGrid({ sx: e.offsetX, sy: e.offsetY }, origin);
++    const gx = Math.floor(g.gx);
++    const gy = Math.floor(g.gy);
+     dragging = garden.objectAt(gx, gy)?.id ?? null;
+   });
+diff --git a/src/garden/model.ts b/src/garden/model.ts
+--- a/src/garden/model.ts
++++ b/src/garden/model.ts
+@@ -5,6 +5,8 @@ export interface GardenObject {
+   gx: number;
+   gy: number;
++  /** height above the sand, used as depth tie-breaker (lanterns on stones) */
++  z: number;
+   width: number;
+   height: number;
+   sprite: CanvasImageSource;

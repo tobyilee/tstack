@@ -1,0 +1,7 @@
+{
+  "name": "tstack",
+  "version": "0.1.0",
+  "description": "문서를 먼저 쓰고, 테스트를 먼저 쓰고, 스텝마다 일지를 쓰는 개발 워크플로. 라우터 스킬 하나가 playbook과 principle을 고른다. Lauren Tan의 pstack의 원리를 따른다.",
+  "author": { "name": "Toby Lee" },
+  "keywords": ["tstack", "workflow", "spec", "adr", "tdd", "journal", "playbook"]
+}

@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: rename-guard-refactor
+expected_outcome: |
+  A short English HTML learning document for a senior dev. Background is brief, no interactive widget is included,
+  the walkthrough explains the rename, the extracted formatName with its null guard and trim, and the greeting
+  now reusing displayName; it notes the behavior change for missing users and that report.js still dereferences owner.
+context:
+  scaffold_script: place-files.sh

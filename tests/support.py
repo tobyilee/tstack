@@ -5,6 +5,7 @@
 """
 import ast
 import importlib.util
+import json
 import re
 import sys
 import sysconfig
@@ -303,3 +304,86 @@ def eval_case_problems(root):
         if not (graders.is_dir() and any(f.suffix == ".md" for f in graders.iterdir() if f.is_file())):
             problems.append("R8: eval 사례의 graders/에 .md 파일이 없다: %s" % name)
     return problems
+
+
+# ------------------------------------------- 매니페스트: AC-1.x, AC-2.6, R1 ~ R4
+
+MARKETPLACE = ".claude-plugin/marketplace.json"
+MARKETPLACE_NAME = "tstack"
+VERSION = re.compile(r"^\d+\.\d+\.\d+$")
+
+
+def read_json(path):
+    """JSON 파일을 읽는다. 파일이 없거나 JSON이 아니면 None을 준다."""
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def plugin_folders(root):
+    base = Path(root) / PLUGINS_DIR
+    return sorted(d.name for d in base.iterdir() if d.is_dir() and d.name not in SKIP_DIRS) if base.is_dir() else []
+
+
+def plugin_manifest(root, name):
+    return read_json(Path(root) / PLUGINS_DIR / name / ".claude-plugin" / "plugin.json")
+
+
+def _depends_on(manifest, target):
+    for item in manifest.get("dependencies") or []:
+        name = item.get("name") if isinstance(item, dict) else str(item)
+        if str(name).split("@")[0] == target:
+            return True
+    return False
+
+
+def manifest_problems(root, plugins=("tstack", "explain-diff")):
+    """마켓플레이스 매니페스트와 플러그인 매니페스트의 문제를 글로 준다. 글은 ID로 시작한다."""
+    root = Path(root)
+    problems = []
+    market = read_json(root / MARKETPLACE)
+    if not isinstance(market, dict):
+        problems.append("AC-1.1: 마켓플레이스 매니페스트가 없다: %s" % MARKETPLACE)
+        market = {}
+    elif market.get("name") != MARKETPLACE_NAME:
+        problems.append("AC-1.2: 마켓플레이스의 name이 %s이 아니다: %s" % (MARKETPLACE_NAME, market.get("name")))
+    entries = [e for e in market.get("plugins") or [] if isinstance(e, dict)]
+    names = sorted(str(e.get("name")) for e in entries)
+    if market and names != sorted(plugins):
+        problems.append("AC-1.3: 플러그인의 목록이 %s의 %d개가 아니다: %s" % (", ".join(plugins), len(plugins), ", ".join(names)))
+    folders = plugin_folders(root)
+    for entry in entries:
+        name = str(entry.get("name"))
+        if entry.get("source") != "./%s/%s" % (PLUGINS_DIR, name):
+            problems.append("R2: 플러그인의 항목의 source가 ./%s/%s이 아니다: %s" % (PLUGINS_DIR, name, entry.get("source")))
+        if "version" in entry:
+            problems.append("R4: 플러그인의 항목이 version을 가진다: %s" % name)
+        if name not in folders:
+            problems.append("R1: 플러그인의 항목에 맞는 플러그인의 폴더가 없다: %s" % name)
+    for folder in folders:
+        manifest = plugin_manifest(root, folder)
+        if not isinstance(manifest, dict):
+            problems.append("R1: 플러그인 매니페스트가 없다: %s/%s/.claude-plugin/plugin.json" % (PLUGINS_DIR, folder))
+            continue
+        if manifest.get("name") != folder:
+            problems.append("R1: 플러그인 매니페스트의 name이 폴더의 이름과 다르다: %s/%s (%s)" % (PLUGINS_DIR, folder, manifest.get("name")))
+        if market and folder not in names:
+            problems.append("R1: 플러그인의 폴더에 맞는 플러그인의 항목이 없다: %s" % folder)
+        if "version" not in manifest:
+            problems.append("ADR-0003 규칙 1: 플러그인 매니페스트에 version이 없다: %s" % folder)
+        elif not isinstance(manifest["version"], str) or not VERSION.match(manifest["version"]):
+            problems.append("R3: 버전이 점으로 나눈 숫자 3개가 아니다: %s (%s)" % (folder, manifest["version"]))
+        if manifest.get("license") != "MIT":
+            problems.append("AC-2.6: 플러그인 매니페스트의 license가 MIT가 아니다: %s (%s)" % (folder, manifest.get("license")))
+        if folder == "tstack" and _depends_on(manifest, "explain-diff"):
+            problems.append("AC-1.9: 플러그인 tstack이 dependencies로 explain-diff를 요구한다")
+    return sorted(problems)
+
+
+def plugin_components(root, name):
+    """플러그인이 제공하는 부품의 이름을 준다: `SKILL.md`가 있는 스킬의 폴더, `agents/`의 `.md` 파일."""
+    base = Path(root) / PLUGINS_DIR / name
+    skills = sorted(d.name for d in (base / "skills").iterdir() if (d / "SKILL.md").is_file()) if (base / "skills").is_dir() else []
+    agents = sorted(f.stem for f in (base / "agents").iterdir() if f.is_file() and f.suffix == ".md") if (base / "agents").is_dir() else []
+    return {"skills": skills, "agents": agents}

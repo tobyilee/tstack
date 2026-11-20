@@ -1,0 +1,19 @@
+{
+  "name": "tstack",
+  "description": "문서를 먼저 쓰는 개발 워크플로(tstack)와, diff를 학습 문서로 바꾸는 스킬(explain-diff).",
+  "owner": {
+    "name": "Toby Lee"
+  },
+  "plugins": [
+    {
+      "name": "tstack",
+      "source": "./plugins/tstack",
+      "description": "문서를 먼저 쓰고, 테스트를 먼저 쓰고, 스텝마다 일지를 쓰는 개발 워크플로."
+    },
+    {
+      "name": "explain-diff",
+      "source": "./plugins/explain-diff",
+      "description": "Turn a diff, commit, branch, or pull request into a self-contained HTML learning document."
+    }
+  ]
+}
